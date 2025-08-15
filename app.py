@@ -1258,6 +1258,9 @@ def admin_gestionar_estudiantes_generales():
     try:
         # Obtener todos los usuarios con rol 'estudiante'
         estudiantes = list(mongo.db.usuarios.find({"rol": "estudiante"}))
+        # Añadir avatar_url a cada estudiante
+        for est in estudiantes:
+            est['avatar_url'] = get_avatar_url(est['email'])
         return render_template('admin_estudiantes.html', estudiantes=estudiantes)
     except Exception as e:
         app.logger.error(f"Error al obtener estudiantes: {e}")

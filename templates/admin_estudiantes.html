@@ -22,6 +22,7 @@
             <table class="table table-zebra">
                 <thead class="bg-tecnm-azul text-tecnm-blanco">
                     <tr>
+                        <th></th>
                         <th># Control</th>
                         <th>Nombre Completo</th>
                         <th>Email</th>
@@ -34,6 +35,13 @@
                 <tbody>
                     {% for estudiante in estudiantes %}
                     <tr class="hover">
+                        <td>
+                            <div class="avatar">
+                                <div class="w-8 rounded-full">
+                                    <img src="{{ estudiante.avatar_url }}" alt="👤" class="w-8 h-8" />
+                                </div>
+                            </div>
+                        </td>
                         <td class="font-mono">{{ estudiante.numero_control }}</td>
                         <td>{{ estudiante.nombre_completo }}</td>
                         <td>{{ estudiante.email }}</td>
