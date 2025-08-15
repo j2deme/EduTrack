@@ -1,0 +1,390 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Panel de Control - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    {% if dashboard_type == 'admin' %}
+        <div class="stats shadow mb-6 w-full">
+            <div class="stat place-items-center">
+                <div class="stat-title">Tutores</div>
+                <div class="stat-value text-primary">{{ stats.tutores }}</div>
+                <div class="stat-desc">Registrados en el sistema</div>
+            </div>
+            <div class="stat place-items-center">
+                <div class="stat-title">Grupos</div>
+                <div class="stat-value text-secondary">{{ stats.grupos }}</div>
+                <div class="stat-desc">Activos</div>
+            </div>
+            <div class="stat place-items-center">
+                <div class="stat-title">Estudiantes</div>
+                <div class="stat-value text-accent">{{ stats.estudiantes }}</div>
+                <div class="stat-desc">Registrados</div>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul">Panel de Administrador</h2>
+                <p>Bienvenido, {{ user.nombre_completo }}. Desde aquí puedes gestionar usuarios, grupos y hábitos del sistema.</p>
+                <div class="card-actions justify-end">
+                    <a href="#" class="btn btn-outline btn-primary"><i class="ti ti-users mr-2"></i>Gestionar Tutores</a>
+                    <a href="#" class="btn btn-outline btn-secondary"><i class="ti ti-users-group mr-2"></i>Gestionar Grupos</a>
+                    <a href="#" class="btn btn-outline btn-accent"><i class="ti ti-checklist mr-2"></i>Gestionar Hábitos</a>
+                </div>
+            </div>
+        </div>
+
+    {% elif dashboard_type == 'tutor' %}
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul">Mis Grupos Asignados</h2>
+                {% if grupos %}
+                    <div class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Grupo</th>
+                                    <th>Número de Estudiantes</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grupo in grupos %}
+                                    <tr>
+                                        <td>{{ grupo.nombre }}</td>
+                                        <td>{{ grupo.estudiante_ids | length }}</td>
+                                        <td>
+                                            <a href="{{ url_for('stats', grupo_id=grupo._id) }}" class="btn btn-sm btn-outline btn-primary">
+                                                <i class="ti ti-chart-bar mr-1"></i>Ver Estadísticas
+                                            </a>
+                                            <!-- <a href="#" class="btn btn-sm btn-outline btn-secondary">Ver Estudiantes</a> -->
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>No tienes grupos asignados actualmente.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul">Mis Tutorados</h2>
+                {% if estudiantes %}
+                    <div class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Número de Control</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estudiante in estudiantes %}
+                                    <tr>
+                                        <td>{{ estudiante.nombre_completo }}</td>
+                                        <td>{{ estudiante.numero_control }}</td>
+                                        <td>
+                                            <a href="{{ url_for('stats_user', user_id=estudiante._id) }}" class="btn btn-sm btn-outline btn-accent">
+                                                <i class="ti ti-user-check mr-1"></i>Ver Progreso
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>No tienes estudiantes asignados en tus grupos.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    {% elif dashboard_type == 'estudiante' %}
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul">Registrar Hábitos del Día</h2>
+                <p class="mb-4">Marca el estado de tus hábitos para hoy (<strong>{{ now().strftime('%d/%m/%Y') }}</strong>)</p>
+                
+                {% if not habitos_base and not habitos_personales %}
+                    <p>No hay hábitos activos para registrar.</p>
+                {% else %}
+                    <form id="habit-form">
+                        <!-- Hábitos Base -->
+                        {% if habitos_base %}
+                            <h3 class="text-lg font-semibold mt-4 mb-2">Hábitos Académicos y de Bienestar</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {% for habito in habitos_base %}
+                                    <div class="card card-compact bg-base-100 border border-base-300">
+                                        <div class="card-body p-4">
+                                            <h4 class="font-medium">{{ habito.nombre }}</h4>
+                                            <div class="flex items-center space-x-2 mt-2">
+                                                <input type="radio" id="hab_{{ habito._id }}_cumplido" name="habito_{{ habito._id }}" value="cumplido" class="radio radio-success" />
+                                                <label for="hab_{{ habito._id }}_cumplido" class="cursor-pointer"><i class="ti ti-check text-success mr-1"></i> Cumplido</label>
+                                                
+                                                <input type="radio" id="hab_{{ habito._id }}_incumplido" name="habito_{{ habito._id }}" value="incumplido" class="radio radio-error" />
+                                                <label for="hab_{{ habito._id }}_incumplido" class="cursor-pointer"><i class="ti ti-x text-error mr-1"></i> Incumplido</label>
+                                                
+                                                <input type="radio" id="hab_{{ habito._id }}_no_aplica" name="habito_{{ habito._id }}" value="no_aplica" class="radio radio-info" />
+                                                <label for="hab_{{ habito._id }}_no_aplica" class="cursor-pointer"><i class="ti ti-minus text-info mr-1"></i> No Aplica</label>
+                                            </div>
+                                             <div id="nota_container_{{ habito._id }}" class="hidden mt-2">
+                                                <label for="nota_{{ habito._id }}" class="label-text">Nota (opcional):</label>
+                                                <input type="text" id="nota_{{ habito._id }}" name="nota_{{ habito._id }}" class="input input-bordered input-sm w-full max-w-xs" placeholder="¿Por qué no aplica?">
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Hábitos Personales -->
+                        {% if habitos_personales %}
+                            <h3 class="text-lg font-semibold mt-6 mb-2">Mis Hábitos Personales</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {% for habito in habitos_personales %}
+                                    <div class="card card-compact bg-base-100 border border-base-300">
+                                        <div class="card-body p-4">
+                                            <h4 class="font-medium flex justify-between">
+                                                {{ habito.nombre }}
+                                                <button type="button" @click="toggleHabitoPersonal('{{ habito._id }}')" class="btn btn-xs btn-ghost">
+                                                    <i class="ti ti-toggle-left text-info" x-show="!isHabitoActivo('{{ habito._id }}')"></i>
+                                                    <i class="ti ti-toggle-right text-success" x-show="isHabitoActivo('{{ habito._id }}')"></i>
+                                                </button>
+                                            </h4>
+                                            <div class="flex items-center space-x-2 mt-2">
+                                                <input type="radio" id="hab_p_{{ habito._id }}_cumplido" name="habito_{{ habito._id }}" value="cumplido" class="radio radio-success" />
+                                                <label for="hab_p_{{ habito._id }}_cumplido" class="cursor-pointer"><i class="ti ti-check text-success mr-1"></i> Cumplido</label>
+                                                
+                                                <input type="radio" id="hab_p_{{ habito._id }}_incumplido" name="habito_{{ habito._id }}" value="incumplido" class="radio radio-error" />
+                                                <label for="hab_p_{{ habito._id }}_incumplido" class="cursor-pointer"><i class="ti ti-x text-error mr-1"></i> Incumplido</label>
+                                                
+                                                <input type="radio" id="hab_p_{{ habito._id }}_no_aplica" name="habito_{{ habito._id }}" value="no_aplica" class="radio radio-info" />
+                                                <label for="hab_p_{{ habito._id }}_no_aplica" class="cursor-pointer"><i class="ti ti-minus text-info mr-1"></i> No Aplica</label>
+                                            </div>
+                                             <div id="nota_container_p_{{ habito._id }}" class="hidden mt-2">
+                                                <label for="nota_p_{{ habito._id }}" class="label-text">Nota (opcional):</label>
+                                                <input type="text" id="nota_p_{{ habito._id }}" name="nota_p_{{ habito._id }}" class="input input-bordered input-sm w-full max-w-xs" placeholder="¿Por qué no aplica?">
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                             <div class="mt-4">
+                                <button type="button" @click="openAddHabitoModal" class="btn btn-sm btn-outline btn-accent">
+                                    <i class="ti ti-plus mr-1"></i> Agregar Hábito Personal
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="mt-4">
+                                <p class="text-sm text-gray-600">No tienes hábitos personales creados.</p>
+                                <button type="button" @click="openAddHabitoModal" class="btn btn-sm btn-outline btn-accent mt-2">
+                                    <i class="ti ti-plus mr-1"></i> Crear uno
+                                </button>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-actions justify-end mt-6">
+                            <button type="button" @click="guardarRegistros" class="btn btn-tecnm">
+                                <i class="ti ti-device-floppy mr-2"></i> Guardar Registros
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Modal para agregar hábito personal -->
+        <dialog id="add_habito_modal" class="modal">
+            <div class="modal-box">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg">Agregar Hábito Personal</h3>
+                <form id="add-habito-form" @submit.prevent="crearHabitoPersonal">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Nombre del Hábito</span>
+                        </label>
+                        <input type="text" id="nombre_habito_personal" placeholder="Ej: Leer un capítulo de libro" class="input input-bordered w-full" required />
+                    </div>
+                    <div class="form-control w-full mt-4">
+                        <label class="label">
+                            <span class="label-text">Categoría</span>
+                        </label>
+                        <select id="categoria_habito_personal" class="select select-bordered w-full" required>
+                            <option disabled selected>Selecciona una categoría</option>
+                            <option value="Académico">Académico</option>
+                            <option value="Bienestar">Bienestar</option>
+                        </select>
+                    </div>
+                    <div class="modal-action">
+                        <form method="dialog">
+                            <button class="btn">Cancelar</button>
+                        </form>
+                        <button type="submit" class="btn btn-tecnm">Crear</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+        
+        <script>
+            // Funciones de Alpine.js para interactividad
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('dashboardEstudiante', () => ({
+                    openAddHabitoModal() {
+                        document.getElementById('add_habito_modal').showModal();
+                    },
+                    crearHabitoPersonal() {
+                        const nombre = document.getElementById('nombre_habito_personal').value.trim();
+                        const categoria = document.getElementById('categoria_habito_personal').value;
+                        
+                        if (!nombre || !categoria) {
+                            alert('Por favor, completa todos los campos.');
+                            return;
+                        }
+                        
+                        fetch('/api/add-personal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nombre: nombre, categoria: categoria })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert('Error: ' + data.error);
+                            } else {
+                                alert(data.message);
+                                location.reload(); // Recargar para mostrar el nuevo hábito
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Ocurrió un error al crear el hábito.');
+                        });
+                        
+                        document.getElementById('add_habito_modal').close();
+                        document.getElementById('add-habito-form').reset();
+                    },
+                    toggleHabitoPersonal(habitId) {
+                        fetch('/api/toggle-habito', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ habit_id: habitId, action: 'toggle' })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert('Error: ' + data.error);
+                            } else {
+                                 // Actualiza UI localmente o recarga
+                                 alert(data.message);
+                                 location.reload(); 
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Ocurrió un error al cambiar el estado del hábito.');
+                        });
+                    },
+                    isHabitoActivo(habitId) {
+                        // Esta función se usaría si se cargaran los estados desde el servidor
+                        // Por ahora, se recarga la página tras el toggle.
+                        return true; 
+                    },
+                    guardarRegistros() {
+                        const formData = new FormData(document.getElementById('habit-form'));
+                        const registros = [];
+                        
+                        // Recolectar datos de hábitos base y personales
+                        // Esto requiere un poco más de lógica JS para parsear radios y notas.
+                        // Ejemplo simplificado para uno:
+                        // const habitId = '...';
+                        // const status = formData.get(`habito_${habitId}`);
+                        // const nota = formData.get(`nota_${habitId}`) || '';
+                        // if(status) {
+                        //     registros.push({ habit_id: habitId, status: status, nota: nota });
+                        // }
+                        
+                        // --- Lógica completa para recolectar todos los registros ---
+                        const habitCards = document.querySelectorAll('#habit-form .card');
+                        habitCards.forEach(card => {
+                            const habitId = card.querySelector('input[name^="habito_"]').name.split('_')[1];
+                            const selectedRadio = card.querySelector('input[name^="habito_"]:checked');
+                            if (selectedRadio) {
+                                const status = selectedRadio.value;
+                                let nota = '';
+                                if (status === 'no_aplica') {
+                                    nota = card.querySelector(`#nota_${habitId}, #nota_p_${habitId}`)?.value || '';
+                                }
+                                registros.push({ habit_id: habitId, status: status, nota: nota });
+                            }
+                        });
+
+                        if (registros.length === 0) {
+                            alert('No hay registros para guardar.');
+                            return;
+                        }
+                        
+                        // Enviar cada registro
+                        const promises = registros.map(registro => 
+                            fetch('/api/registrar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(registro)
+                            }).then(response => {
+                                if (!response.ok) {
+                                    return response.json().then(err => Promise.reject(err));
+                                }
+                                return response.json();
+                            })
+                        );
+                        
+                        Promise.all(promises)
+                            .then(results => {
+                                alert('Todos los registros se han guardado correctamente.');
+                                // Opcional: Limpiar selecciones o mostrar confirmación
+                                 document.querySelectorAll('#habit-form input[type="radio"]').forEach(radio => radio.checked = false);
+                                 document.querySelectorAll('#habit-form input[type="text"]').forEach(input => input.value = '');
+                                 document.querySelectorAll('[id^="nota_container_"]').forEach(div => div.classList.add('hidden'));
+                            })
+                            .catch(error => {
+                                console.error('Errores al guardar:', error);
+                                if (error.error) {
+                                     alert('Error al guardar: ' + error.error);
+                                } else {
+                                    alert('Ocurrió un error al guardar uno o más registros.');
+                                }
+                            });
+                    }
+                }));
+            });
+            
+            // Mostrar/Ocultar campo de nota para "No Aplica"
+            document.addEventListener('change', function(e) {
+                 if (e.target.type === 'radio' && e.target.value === 'no_aplica') {
+                    const habitId = e.target.name.split('_')[1];
+                    const notaContainer = document.getElementById(`nota_container_${habitId}`) || document.getElementById(`nota_container_p_${habitId}`);
+                    if (notaContainer) {
+                         notaContainer.classList.remove('hidden');
+                    }
+                 } else if (e.target.type === 'radio' && e.target.value !== 'no_aplica') {
+                     // Opcional: Ocultar nota si se selecciona otra opción
+                     // const habitId = e.target.name.split('_')[1];
+                     // const notaContainer = document.getElementById(`nota_container_${habitId}`) || document.getElementById(`nota_container_p_${habitId}`);
+                     // if (notaContainer && !notaContainer.classList.contains('hidden')) {
+                     //      notaContainer.classList.add('hidden');
+                     //      const notaInput = notaContainer.querySelector('input');
+                     //      if (notaInput) notaInput.value = '';
+                     // }
+                 }
+            });
+        </script>
+    {% endif %}
+</div>
+{% endblock %}
