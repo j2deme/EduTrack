@@ -109,8 +109,7 @@
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                            {% endfor %}
+                            </template>
                         </div>
                     {% endif %}
                 {% endwith %}
@@ -131,9 +130,15 @@
                 <li class="menu-title">Menú Principal</li>
                 <li><a href="{{ url_for('dashboard') }}"><i class="ti ti-dashboard mr-2"></i>Inicio</a></li>
                 {% if current_user and current_user.rol == 'administrador' %}
-                    <li><a href="#"><i class="ti ti-users mr-2"></i>Gestión de Usuarios</a></li>
-                    <li><a href="#"><i class="ti ti-users-group mr-2"></i>Gestión de Grupos</a></li>
-                    <li><a href="#"><i class="ti ti-checklist mr-2"></i>Gestión de Hábitos</a></li>
+                    <li><a href="{{ url_for('admin_gestionar_tutores') }}"><i class="ti ti-users mr-2"></i>Gestión de Usuarios</a>
+                        <ul class="menu-sub">
+                            <li><a href="{{ url_for('admin_gestionar_tutores') }}">Tutores</a></li>
+                            <li><a href="{{ url_for('admin_gestionar_estudiantes_generales') }}">Estudiantes</a></li>
+                            <!-- Puedes agregar más sub-opciones aquí -->
+                        </ul>
+                    </li>
+                    <li><a href="{{ url_for('admin_gestionar_grupos') }}"><i class="ti ti-users-group mr-2"></i>Gestión de Grupos</a></li>
+                    <li><a href="{{ url_for('admin_habitos') }}"><i class="ti ti-checklist mr-2"></i>Gestión de Hábitos</a></li>
                 {% elif current_user and current_user.rol == 'tutor' %}
                      <li><a href="{{ url_for('stats') }}"><i class="ti ti-chart-bar mr-2"></i>Estadísticas de Grupo</a></li>
                 {% elif current_user and current_user.rol == 'estudiante' %}

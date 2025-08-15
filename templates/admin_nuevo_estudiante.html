@@ -1,0 +1,93 @@
+<!-- templates/admin_nuevo_estudiante.html -->
+{% extends "base.html" %}
+
+{% block title %}Nuevo Estudiante - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Dar de Alta Nuevo Estudiante</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre Completo *</span>
+                    </label>
+                    <input type="text" name="nombre_completo" placeholder="Nombre(s) Apellido Paterno Apellido Materno" 
+                           value="{{ request.form.nombre_completo or nombre_completo or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Email *</span>
+                        <span class="label-text-alt">Este será su nombre de usuario.</span>
+                    </label>
+                    <input type="email" name="email" placeholder="estudiante@tecnm.mx" 
+                           value="{{ request.form.email or email or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Contraseña</span>
+                        <span class="label-text-alt">Si se deja vacía, se usará el # de control.</span>
+                    </label>
+                    <input type="password" name="password" placeholder="Dejar en blanco para usar # control" 
+                           class="input input-bordered w-full" />
+                     <label class="label">
+                         <span class="label-text-alt">Mínimo 6 caracteres recomendado.</span>
+                     </label>
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text"># Control *</span>
+                    </label>
+                    <input type="text" name="numero_control" placeholder="Ej: 12345678" 
+                           value="{{ request.form.numero_control or numero_control or '' }}" 
+                           class="input input-bordered w-full font-mono uppercase" required />
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Carrera</span>
+                    </label>
+                    <input type="text" name="carrera" placeholder="Nombre de la carrera" 
+                           value="{{ request.form.carrera or carrera or '' }}" 
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text">Semestre</span>
+                        </label>
+                        <input type="number" name="semestre" placeholder="Ej: 5" min="1" max="15"
+                               value="{{ request.form.semestre or semestre or '' }}" 
+                               class="input input-bordered w-full" />
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text">Generación</span>
+                            <span class="label-text-alt">Ej: 2022-2026</span>
+                        </label>
+                        <input type="text" name="generacion" placeholder="Año de inicio - Año de fin" 
+                               value="{{ request.form.generacion or generacion or '' }}" 
+                               class="input input-bordered w-full" />
+                    </div>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_estudiantes_generales') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-user-plus mr-2"></i> Dar de Alta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

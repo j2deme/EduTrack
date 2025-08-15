@@ -89,10 +89,14 @@
                     </div>
                 {% else %}
                     <p class="text-gray-500 italic">No hay más estudiantes disponibles para agregar a este grupo.</p>
-                    <a href="#" class="btn btn-sm btn-outline btn-accent mt-2">
-                        <i class="ti ti-upload mr-2"></i> Cargar Estudiantes por Lote
-                    </a> 
-                    <!-- Enlace para funcionalidad futura de carga por lotes -->
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <a href="{{ url_for('admin_nuevo_estudiante') }}" class="btn btn-sm btn-outline btn-primary">
+                            <i class="ti ti-user-plus mr-2"></i> Dar de Alta Estudiante
+                        </a>
+                        <a href="{{ url_for('admin_cargar_lote_estudiantes') }}" class="btn btn-sm btn-outline btn-secondary">
+                            <i class="ti ti-upload mr-2"></i> Cargar por Lote
+                        </a>
+                    </div>
                 {% endif %}
             </div>
         </div>

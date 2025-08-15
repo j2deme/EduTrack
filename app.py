@@ -762,6 +762,134 @@ def admin_gestionar_estudiantes(grupo_id):
                            estudiantes_en_grupo=estudiantes_en_grupo,
                            estudiantes_disponibles=estudiantes_disponibles)
 
+# -- Rutas para gestión de estudiantes (ADMIN)
+
+
+@app.route('/admin/estudiantes')
+@admin_required
+def admin_gestionar_estudiantes_generales():
+    """Muestra la lista de todos los estudiantes."""
+    try:
+        # Obtener todos los usuarios con rol 'estudiante'
+        estudiantes = list(mongo.db.usuarios.find({"rol": "estudiante"}))
+        return render_template('admin_estudiantes.html', estudiantes=estudiantes)
+    except Exception as e:
+        app.logger.error(f"Error al obtener estudiantes: {e}")
+        flash('Ocurrió un error al cargar la lista de estudiantes.', 'error')
+        return render_template('admin_estudiantes.html', estudiantes=[])
+
+
+@app.route('/admin/estudiantes/nuevo', methods=['GET', 'POST'])
+@admin_required
+def admin_nuevo_estudiante():
+    """Crea un nuevo usuario estudiante."""
+    if request.method == 'POST':
+        nombre_completo = request.form.get('nombre_completo', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        # Contraseña temporal o generada
+        password = request.form.get('password', '')
+        numero_control = request.form.get(
+            'numero_control', '').strip().upper()  # En mayúsculas
+        carrera = request.form.get('carrera', '').strip()
+        semestre = request.form.get('semestre', '').strip()
+        generacion = request.form.get('generacion', '').strip()
+
+        # Validaciones básicas
+        errors = []
+        if not nombre_completo:
+            errors.append("El nombre completo es obligatorio.")
+        if not email:
+            errors.append("El email es obligatorio.")
+        else:
+            if "@" not in email or "." not in email:
+                errors.append("El formato del email no es válido.")
+            elif mongo.db.usuarios.find_one({"email": email}):
+                errors.append("Ya existe un usuario con ese email.")
+        # El número de control debería ser único también
+        if not numero_control:
+            errors.append("El número de control es obligatorio.")
+        elif mongo.db.usuarios.find_one({"numero_control": numero_control, "rol": "estudiante"}):
+            errors.append("Ya existe un estudiante con ese número de control.")
+
+        # Validar semestre como número (opcional)
+        if semestre:
+            try:
+                int(semestre)
+            except ValueError:
+                errors.append("El semestre debe ser un número.")
+
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            return render_template('admin_nuevo_estudiante.html',
+                                   nombre_completo=nombre_completo,
+                                   email=email,
+                                   numero_control=numero_control,
+                                   carrera=carrera,
+                                   semestre=semestre,
+                                   generacion=generacion)
+
+        # Si todo es válido, crear el estudiante
+        # Generar una contraseña temporal o usar la proporcionada
+        if not password:
+            password = numero_control  # Usar el número de control como contraseña inicial
+            flash(
+                'Se ha establecido el número de control como contraseña temporal.', 'info')
+
+        try:
+            hashed_password = generate_password_hash(password)
+
+            nuevo_estudiante = {
+                "nombre_completo": nombre_completo,
+                "email": email,
+                "password": hashed_password,
+                "rol": "estudiante",
+                "numero_control": numero_control,
+                "carrera": carrera,
+                "semestre": semestre,
+                "generacion": generacion
+                # Puedes agregar más campos aquí
+            }
+
+            result = mongo.db.usuarios.insert_one(nuevo_estudiante)
+            if result.inserted_id:
+                flash(
+                    f'Estudiante "{nombre_completo}" ({numero_control}) creado exitosamente.', 'success')
+                # Opcional: Redirigir a la lista de estudiantes o al grupo desde donde se llamó
+                # Por ahora, redirigimos a la lista general
+                return redirect(url_for('admin_gestionar_estudiantes_generales'))
+            else:
+                raise Exception("No se pudo insertar el documento.")
+
+        except Exception as e:
+            app.logger.error(f"Error al crear estudiante: {e}")
+            flash('Ocurrió un error al crear el estudiante.', 'error')
+            return render_template('admin_nuevo_estudiante.html',
+                                   nombre_completo=nombre_completo,
+                                   email=email,
+                                   numero_control=numero_control,
+                                   carrera=carrera,
+                                   semestre=semestre,
+                                   generacion=generacion)
+
+    # Si es GET, mostrar el formulario vacío
+    return render_template('admin_nuevo_estudiante.html')
+
+# Placeholder para carga por lotes
+
+
+@app.route('/admin/estudiantes/cargar_lote', methods=['GET', 'POST'])
+@admin_required
+def admin_cargar_lote_estudiantes():
+    """Placeholder para la funcionalidad de carga por lotes."""
+    if request.method == 'POST':
+        # Aquí iría la lógica para procesar un archivo CSV/XLSX
+        # Por ahora, solo mostramos un mensaje.
+        flash('Funcionalidad de carga por lotes aún no implementada. Esta es una demostración.', 'warning')
+        return redirect(url_for('admin_gestionar_estudiantes_generales'))
+
+    return render_template('admin_cargar_lote_estudiantes.html')
+
 
 # --- API Endpoints ---
 

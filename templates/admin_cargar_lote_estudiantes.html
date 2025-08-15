@@ -1,0 +1,93 @@
+<!-- templates/admin_cargar_lote_estudiantes.html -->
+{% extends "base.html" %}
+
+{% block title %}Cargar Estudiantes por Lote - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Cargar Estudiantes por Lote (CSV/XLSX)</h2>
+            <p class="mb-4">Esta funcionalidad permite cargar múltiples estudiantes desde un archivo.</p>
+            
+            <div class="alert alert-warning shadow-lg mb-4">
+                <i class="ti ti-alert-triangle mr-2"></i>
+                <div>
+                    <h3 class="font-bold">Funcionalidad en Desarrollo</h3>
+                    <div class="text-xs">La carga por lotes aún no está implementada. Esta es una vista de ejemplo.</div>
+                </div>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data"> <!-- Importante el enctype -->
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Seleccionar Archivo (CSV/XLSX) *</span>
+                    </label>
+                    <input type="file" name="archivo" accept=".csv, .xlsx" class="file-input file-input-bordered w-full" required />
+                    <label class="label">
+                        <span class="label-text-alt">Formato requerido: columnas para nombre, email, #control, etc.</span>
+                    </label>
+                </div>
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label cursor-pointer justify-start gap-2">
+                        <input type="checkbox" name="generar_contraseñas" class="checkbox checkbox-primary" checked />
+                        <span class="label-text">Generar contraseñas aleatorias</span>
+                    </label>
+                     <label class="label">
+                         <span class="label-text-alt">Si no se marca, se usará el # de control como contraseña.</span>
+                     </label>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_estudiantes_generales') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm" disabled> <!-- Deshabilitado por ahora -->
+                        <i class="ti ti-upload mr-2"></i> Cargar Archivo
+                    </button>
+                </div>
+            </form>
+            
+            <div class="collapse bg-base-200 collapse-arrow mt-6">
+                <input type="checkbox" class="peer" /> 
+                <div class="collapse-title font-medium">
+                    <i class="ti ti-info-circle mr-2"></i> Formato de Archivo Esperado
+                </div>
+                <div class="collapse-content overflow-x-auto"> 
+                    <p class="mb-2">El archivo debe contener las siguientes columnas en la primera fila (encabezados):</p>
+                    <table class="table table-xs">
+                        <thead>
+                            <tr>
+                                <th>nombre_completo</th>
+                                <th>email</th>
+                                <th>numero_control</th>
+                                <th>carrera</th>
+                                <th>semestre</th>
+                                <th>generacion</th>
+                                <!-- Agrega más si es necesario -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Juan Pérez López</td>
+                                <td>juan.perez@tecnm.mx</td>
+                                <td>12345678</td>
+                                <td>Ingeniería en Sistemas Computacionales</td>
+                                <td>5</td>
+                                <td>2022-2026</td>
+                            </tr>
+                            <tr>
+                                <td>María González Ruiz</td>
+                                <td>maria.gonzalez@tecnm.mx</td>
+                                <td>87654321</td>
+                                <td>Ingeniería Mecánica Eléctrica</td>
+                                <td>7</td>
+                                <td>2021-2025</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
