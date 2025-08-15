@@ -1,0 +1,115 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EduTrak{% endblock %}</title>
+    
+    <!-- Tailwind CSS + DaisyUI CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tabler Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        /* Colores institucionales del TecNM */
+        :root {
+          --tecnm-azul: #004aad; /* Azul principal TecNM */
+          --tecnm-azul-claro: #4d79c9; /* Azul secundario */
+          --tecnm-gris: #6c757d; /* Gris */
+          --tecnm-blanco: #ffffff;
+        }
+        .bg-tecnm-azul { background-color: var(--tecnm-azul); }
+        .text-tecnm-azul { color: var(--tecnm-azul); }
+        .border-tecnm-azul { border-color: var(--tecnm-azul); }
+        .btn-tecnm { background-color: var(--tecnm-azul); color: white; }
+        .btn-tecnm:hover { background-color: var(--tecnm-azul-claro); }
+    </style>
+</head>
+<body class="bg-base-200 text-base-content">
+    <div class="drawer lg:drawer-open">
+        <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-content flex flex-col">
+            <!-- Navbar -->
+            {% if session.user_id %}
+            <div class="navbar bg-tecnm-azul text-tecnm-blanco">
+                <div class="flex-none lg:hidden">
+                    <label for="my-drawer-2" aria-label="open sidebar" class="btn btn-square btn-ghost text-tecnm-blanco">
+                        <i class="ti ti-menu-2 text-xl"></i>
+                    </label>
+                </div>
+                <div class="flex-1">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost text-xl text-tecnm-blanco">EduTrak</a>
+                </div>
+                <div class="flex-none">
+                    <div class="dropdown dropdown-end">
+                        <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                            <div class="w-10 rounded-full">
+                                {% if current_user %}
+                                    <img src="{{ current_user.avatar_url }}" alt="Avatar" />
+                                {% else %}
+                                    <img src="https://api.dicebear.com/9.x/thumbs/svg?seed=anonimo&background=%23ffffff" alt="Avatar" />
+                                {% endif %}
+                            </div>
+                        </div>
+                        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 text-base-content">
+                            <li><a href="{{ url_for('profile') }}"><i class="ti ti-user mr-2"></i>Perfil</a></li>
+                            <li><a href="{{ url_for('logout') }}"><i class="ti ti-logout mr-2"></i>Salir</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <!-- Page content here -->
+            <main class="p-4 flex-grow">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="toast toast-top toast-center z-50">
+                            {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'warning' else 'error' if category == 'error' else 'info' }} shadow-lg">
+                                <div>
+                                    <span>{{ message }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+            <footer class="footer footer-center p-4 bg-base-300 text-base-content">
+                <aside>
+                    <p>© {{ now().year }} Tecnológico Nacional de México. EduTrak v1.0</p>
+                </aside>
+            </footer>
+        </div> 
+        {% if session.user_id %}
+        <div class="drawer-side">
+            <label for="my-drawer-2" aria-label="close sidebar" class="drawer-overlay"></label>
+            <ul class="menu p-4 w-80 min-h-full bg-base-100 text-base-content">
+                <!-- Sidebar content here -->
+                <li class="menu-title">Menú Principal</li>
+                <li><a href="{{ url_for('dashboard') }}"><i class="ti ti-dashboard mr-2"></i>Inicio</a></li>
+                {% if current_user and current_user.rol == 'administrador' %}
+                    <li><a href="#"><i class="ti ti-users mr-2"></i>Gestión de Usuarios</a></li>
+                    <li><a href="#"><i class="ti ti-users-group mr-2"></i>Gestión de Grupos</a></li>
+                    <li><a href="#"><i class="ti ti-checklist mr-2"></i>Gestión de Hábitos</a></li>
+                {% elif current_user and current_user.rol == 'tutor' %}
+                     <li><a href="{{ url_for('stats') }}"><i class="ti ti-chart-bar mr-2"></i>Estadísticas de Grupo</a></li>
+                {% elif current_user and current_user.rol == 'estudiante' %}
+                    <li><a href="{{ url_for('calendar') }}"><i class="ti ti-calendar-stats mr-2"></i>Mi Calendario</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('profile') }}"><i class="ti ti-user mr-2"></i>Mi Perfil</a></li>
+                <li class="mt-auto"><a href="{{ url_for('logout') }}"><i class="ti ti-logout mr-2"></i>Salir</a></li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
