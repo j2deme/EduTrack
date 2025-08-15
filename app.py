@@ -126,7 +126,6 @@ def dashboard():
         # 2. Obtener IDs de estudiantes en esos grupos
         student_ids = []
         for grupo in grupos:
-            # Ya son strings
             student_ids.extend(grupo.get('estudiante_ids', []))
 
         # 3. Contar totales
@@ -139,7 +138,7 @@ def dashboard():
             {"nombre_completo": 1, "numero_control": 1}
         ))
 
-        # 5. --- NUEVO: Obtener estadísticas resumidas para el dashboard ---
+        # 5. Obtener estadísticas resumidas para el dashboard
         stats_resumen = {
             'total_grupos': total_grupos,
             'total_estudiantes': total_estudiantes,
@@ -1363,7 +1362,27 @@ def admin_nuevo_estudiante():
     # Si es GET, mostrar el formulario vacío
     return render_template('admin_nuevo_estudiante.html')
 
-# Placeholder para carga por lotes
+
+@app.route('/admin/estudiantes/cambiar_password/<user_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_cambiar_password(user_id):
+    usuario = mongo.db.usuarios.find_one({"_id": ObjectId(user_id)})
+    if not usuario:
+        flash('Usuario no encontrado.', 'error')
+        return redirect(url_for('admin_gestionar_estudiantes_generales'))
+    if request.method == 'POST':
+        nueva_password = request.form.get('nueva_password')
+        if nueva_password and len(nueva_password) >= 6:
+            hash_pw = generate_password_hash(nueva_password)
+            mongo.db.usuarios.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"password": hash_pw}}
+            )
+            flash('Contraseña actualizada correctamente.', 'success')
+            return redirect(url_for('admin_gestionar_estudiantes_generales'))
+        else:
+            flash('La contraseña debe tener al menos 6 caracteres.', 'error')
+    return render_template('admin_cambiar_password.html', usuario=usuario)
 
 
 @app.route('/admin/estudiantes/cargar_lote', methods=['GET', 'POST'])

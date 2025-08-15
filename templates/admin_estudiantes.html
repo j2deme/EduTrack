@@ -29,7 +29,9 @@
                         <th>Carrera</th>
                         <th>Semestre</th>
                         <th>Generación</th>
-                        <!-- <th>Acciones</th> --> <!-- Placeholder para editar/eliminar -->
+                        <th>
+                            <i class="ti ti-settings"></i>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,6 +50,11 @@
                         <td>{{ estudiante.carrera or 'N/A' }}</td>
                         <td>{{ estudiante.semestre or 'N/A' }}</td>
                         <td>{{ estudiante.generacion or 'N/A' }}</td>
+                        <td>
+                            <a href="{{ url_for('admin_cambiar_password', user_id=estudiante._id) }}" class="btn btn-xs btn-warning">
+                                <i class="ti ti-lock"></i>
+                            </a>
+                        </td>
                         <!--
                         <td>
                             <div class="flex gap-2">
