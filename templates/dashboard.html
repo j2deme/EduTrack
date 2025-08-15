@@ -36,74 +36,206 @@
             </div>
         </div>
 
-    {% if dashboard_type == 'tutor' %}
-    <div class="card bg-base-100 shadow-xl mb-6">
-        <div class="card-body">
-            <h2 class="card-title text-tecnm-azul">Mis Grupos Asignados</h2>
-            {% if grupos %}
-                <div class="overflow-x-auto">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Nombre del Grupo</th>
-                                <th>Número de Estudiantes</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for grupo in grupos %}
-                                <tr>
-                                    <td>{{ grupo.nombre }}</td>
-                                    <td>{{ grupo.estudiante_ids | length }}</td>
-                                    <td>
-                                        <a href="{{ url_for('stats', grupo_id=grupo._id) }}" class="btn btn-sm btn-outline btn-primary">
-                                            <i class="ti ti-chart-bar mr-1"></i>Ver Estadísticas
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    {% elif dashboard_type == 'tutor' %}
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul mb-2">Bienvenido, {{ user.nombre_completo }}</h1>
+        <p class="text-gray-600">Aquí tienes un resumen de tus grupos y estudiantes asignados.</p>
+    </div>
+
+    <!-- Tarjetas de Resumen -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="card bg-primary text-primary-content shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl"><i class="ti ti-users-group mr-2"></i> Grupos</h2>
+                <p class="text-5xl font-bold">{{ stats_resumen.total_grupos }}</p>
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('stats') }}" class="btn btn-outline btn-sm">Ver Estadísticas</a>
                 </div>
-            {% else %}
-                <p>No tienes grupos asignados actualmente.</p>
+            </div>
+        </div>
+        <div class="card bg-secondary text-secondary-content shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl"><i class="ti ti-users mr-2"></i> Estudiantes</h2>
+                <p class="text-5xl font-bold">{{ stats_resumen.total_estudiantes }}</p>
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('stats') }}" class="btn btn-outline btn-sm">Ver Todos</a>
+                </div>
+            </div>
+        </div>
+        <div class="card bg-accent text-accent-content shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl"><i class="ti ti-chart-bar mr-2"></i> Promedio Grupo</h2>
+                <p class="text-5xl font-bold">{{ stats_resumen.promedio_cumplimiento_grupal }}%</p>
+                <div class="text-sm mt-2">(Últimos 7 días)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Ranking de Grupos -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul"><i class="ti ti-trophy mr-2"></i> Top 3 Grupos por Cumplimiento</h2>
+                {% if stats_resumen.grupos_ranking %}
+                    <div class="space-y-4 mt-4">
+                        {% for grupo_id, data in stats_resumen.grupos_ranking %}
+                        <div class="flex items-center justify-between p-3 bg-base-200 rounded-box">
+                            <span class="font-medium">{{ loop.index }}. {{ data.nombre }}</span>
+                            <span class="badge 
+                                {% if data.promedio >= 75 %}badge-success
+                                {% elif data.promedio >= 50 %}badge-warning
+                                {% else %}badge-error
+                                {% endif %}">
+                                {{ data.promedio }}%
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 italic mt-4">No hay datos suficientes para el ranking.</p>
+                {% endif %}
+                <div class="card-actions justify-end mt-4">
+                    <a href="{{ url_for('stats') }}" class="btn btn-sm btn-outline btn-primary">
+                        <i class="ti ti-chart-bar mr-1"></i> Ver Estadísticas Detalladas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Actividad Reciente y Alertas -->
+        <div class="space-y-6">
+            <!-- Últimos Registros -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-tecnm-azul"><i class="ti ti-clock mr-2"></i> Actividad Reciente</h2>
+                    {% if stats_resumen.ultimos_registros %}
+                        <ul class="mt-4 space-y-3">
+                            {% for registro in stats_resumen.ultimos_registros %}
+                            <li class="flex justify-between items-start p-2 hover:bg-base-200 rounded-box">
+                                <div>
+                                    <div class="font-medium">{{ registro.estudiante_nombre }}</div>
+                                    <div class="text-sm text-gray-600">{{ registro.habito_nombre }}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm">{{ registro.fecha }}</div>
+                                    <div class="badge 
+                                        {% if registro.estado == 'cumplido' %}badge-success
+                                        {% elif registro.estado == 'incumplido' %}badge-error
+                                        {% else %}badge-info
+                                        {% endif %} badge-sm">
+                                        {{ registro.estado }}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 italic mt-4">No hay actividad reciente registrada.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Alertas: Estudiantes sin actividad -->
+            {% if stats_resumen.estudiantes_sin_actividad %}
+            <div class="card bg-warning text-warning-content shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="ti ti-alert-triangle mr-2"></i> Alerta de Seguimiento</h2>
+                    <p class="mb-3">Los siguientes estudiantes no han registrado hábitos en los últimos 3 días:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        {% for est in stats_resumen.estudiantes_sin_actividad %}
+                        <li>
+                            <span class="font-medium">{{ est.nombre_completo }}</span> 
+                            ({{ est.numero_control }})
+                            <!-- Opcional: <a href="mailto:{{ est.email }}" class="underline">(Contactar)</a> -->
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="card-actions justify-end mt-3">
+                        <a href="{{ url_for('stats') }}" class="btn btn-sm btn-outline">Ver Todos los Estudiantes</a>
+                    </div>
+                </div>
+            </div>
             {% endif %}
         </div>
     </div>
-    <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h2 class="card-title text-tecnm-azul">Mis Tutorados</h2>
-            {% if estudiantes %}
-                <div class="overflow-x-auto">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Número de Control</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for estudiante in estudiantes %}
-                                <tr>
-                                    <td>{{ estudiante.nombre_completo }}</td>
-                                    <td>{{ estudiante.numero_control }}</td>
-                                    <td>
-                                        <a href="{{ url_for('stats_user', user_id=estudiante._id) }}" class="btn btn-sm btn-outline btn-accent">
-                                            <i class="ti ti-user-check mr-1"></i>Ver Progreso
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+
+    <!-- Sección Opcional: Listas de Grupos y Estudiantes (como antes, pero minimizada o en collapse) -->
+    <div class="collapse bg-base-200 collapse-arrow mt-8">
+        <input type="checkbox" class="peer" /> 
+        <div class="collapse-title font-medium flex items-center">
+            <i class="ti ti-list mr-2"></i> Ver Mis Grupos y Estudiantes
+        </div>
+        <div class="collapse-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                <div class="card bg-base-100 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Mis Grupos Asignados</h2>
+                        {% if grupos %}
+                            <div class="overflow-x-auto">
+                                <table class="table table-xs">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre del Grupo</th>
+                                            <th># Estudiantes</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for grupo in grupos %}
+                                            <tr>
+                                                <td>{{ grupo.nombre }}</td>
+                                                <td>{{ grupo.estudiante_ids | length }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('stats', grupo_id=grupo._id) }}" class="btn btn-xs btn-outline btn-primary">
+                                                        <i class="ti ti-chart-bar mr-1"></i>Estadísticas
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-gray-500 text-sm">No tienes grupos asignados.</p>
+                        {% endif %}
+                    </div>
                 </div>
-            {% else %}
-                <p>No tienes estudiantes asignados en tus grupos.</p>
-            {% endif %}
+                <div class="card bg-base-100 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Mis Tutorados</h2>
+                        {% if estudiantes %}
+                            <div class="overflow-x-auto">
+                                <table class="table table-xs">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th># Control</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for estudiante in estudiantes %}
+                                            <tr>
+                                                <td>{{ estudiante.nombre_completo }}</td>
+                                                <td>{{ estudiante.numero_control }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('stats_user', user_id=estudiante._id) }}" class="btn btn-xs btn-outline btn-accent">
+                                                        <i class="ti ti-user-check mr-1"></i>Ver Progreso
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-gray-500 text-sm">No tienes estudiantes asignados.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
     {% elif dashboard_type == 'estudiante' %}
        <div class="card bg-base-100 shadow-xl mb-6" x-data="dashboardEstudianteAutomatico()" x-init="initializeHabits()">
             <div class="card-body">

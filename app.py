@@ -115,20 +115,168 @@ def dashboard():
         return render_template('dashboard.html', user=user, stats=stats, dashboard_type='admin')
 
     elif user['rol'] == 'tutor':
-        # Obtener grupos asignados al tutor
-        grupos = list(mongo.db.grupos.find({"tutor_id": str(user['_id'])}))
-        # Obtener IDs de estudiantes en esos grupos
+        from datetime import date, timedelta
+
+        tutor_id_str = str(user['_id'])
+
+        # 1. Obtener grupos asignados al tutor
+        grupos = list(mongo.db.grupos.find({"tutor_id": tutor_id_str}))
+        grupo_ids = [str(g['_id']) for g in grupos]
+
+        # 2. Obtener IDs de estudiantes en esos grupos
         student_ids = []
         for grupo in grupos:
-            student_ids.extend([ObjectId(sid)
-                               for sid in grupo.get('estudiante_ids', [])])
+            # Ya son strings
+            student_ids.extend(grupo.get('estudiante_ids', []))
 
-        # Obtener datos básicos de estudiantes
+        # 3. Contar totales
+        total_grupos = len(grupos)
+        total_estudiantes = len(student_ids)
+
+        # 4. Obtener datos básicos de estudiantes
         estudiantes = list(mongo.db.usuarios.find(
-            {"_id": {"$in": student_ids}},
+            {"_id": {"$in": [ObjectId(sid) for sid in student_ids]}},
             {"nombre_completo": 1, "numero_control": 1}
         ))
-        return render_template('dashboard.html', user=user, grupos=grupos, estudiantes=estudiantes, dashboard_type='tutor')
+
+        # 5. --- NUEVO: Obtener estadísticas resumidas para el dashboard ---
+        stats_resumen = {
+            'total_grupos': total_grupos,
+            'total_estudiantes': total_estudiantes,
+            'promedio_cumplimiento_grupal': 0.0,
+            'grupos_ranking': [],  # Top 3 grupos por cumplimiento
+            'ultimos_registros': [],  # Últimos 5 registros de estudiantes
+            'estudiantes_sin_actividad': []  # Estudiantes sin registro en los últimos 3 días
+        }
+
+        if grupo_ids and student_ids:
+            # a. Promedio de cumplimiento grupal (simplificado: últimos 7 días)
+            hace_7_dias = date.today() - timedelta(days=7)
+
+            # Obtener hábitos base activos para el cálculo
+            habitos_base_ids = [str(h['_id']) for h in mongo.db.habitos.find(
+                {"activo": True, "tipo": "base"}, {"_id": 1})]
+            total_habitos_base = len(
+                habitos_base_ids) if habitos_base_ids else 1
+
+            # Registros de los últimos 7 días de los estudiantes del tutor
+            registros_7_dias = list(mongo.db.registros_habitos.find({
+                "usuario_id": {"$in": student_ids},
+                "habito_id": {"$in": habitos_base_ids},
+                "fecha": {"$gte": hace_7_dias.isoformat()}
+            }))
+
+            # Calcular promedio grupal
+            total_registros_esperados = total_estudiantes * total_habitos_base * 7
+            total_registros_reales = len(registros_7_dias)
+            if total_registros_esperados > 0:
+                stats_resumen['promedio_cumplimiento_grupal'] = round(
+                    (total_registros_reales / total_registros_esperados) * 100, 2)
+            else:
+                stats_resumen['promedio_cumplimiento_grupal'] = 0.0
+
+            # b. Ranking de grupos (simplificado)
+            if habitos_base_ids:
+                cumplimiento_por_grupo = {}
+                for grupo in grupos:
+                    g_id = str(grupo['_id'])
+                    estudiantes_grupo = grupo.get('estudiante_ids', [])
+                    if not estudiantes_grupo:
+                        cumplimiento_por_grupo[g_id] = {
+                            'nombre': grupo['nombre'], 'promedio': 0.0}
+                        continue
+
+                    registros_grupo = [
+                        r for r in registros_7_dias if r['usuario_id'] in estudiantes_grupo]
+                    total_esperado_grupo = len(
+                        estudiantes_grupo) * total_habitos_base * 7
+                    total_real_grupo = len(registros_grupo)
+                    if total_esperado_grupo > 0:
+                        promedio_grupo = (total_real_grupo /
+                                          total_esperado_grupo) * 100
+                    else:
+                        promedio_grupo = 0.0
+                    cumplimiento_por_grupo[g_id] = {
+                        'nombre': grupo['nombre'], 'promedio': round(promedio_grupo, 2)}
+
+                # Ordenar y tomar top 3
+                grupos_ordenados = sorted(cumplimiento_por_grupo.items(
+                ), key=lambda item: item[1]['promedio'], reverse=True)
+                stats_resumen['grupos_ranking'] = grupos_ordenados[:3]
+
+            # c. Últimos registros (5 más recientes)
+            # Obtener los últimos 5 registros ordenados por fecha (desc) y luego invertir para mostrarlos en orden
+            ultimos_5_registros_cursor = mongo.db.registros_habitos.find(
+                {"usuario_id": {"$in": student_ids}}
+            ).sort("fecha", -1).limit(5)  # -1 para orden descendente
+
+            ultimos_5_registros = list(ultimos_5_registros_cursor)
+            # Obtener info de estudiantes y hábitos para mostrar nombres
+            ultimos_estudiante_ids = list(
+                set(r['usuario_id'] for r in ultimos_5_registros))
+            ultimos_habito_ids = list(set(r['habito_id']
+                                      for r in ultimos_5_registros))
+
+            ultimos_estudiantes_dict = {str(e['_id']): e for e in mongo.db.usuarios.find(
+                {"_id": {"$in": [ObjectId(sid)
+                                 for sid in ultimos_estudiante_ids]}},
+                {"nombre_completo": 1, "numero_control": 1}
+            )}
+            ultimos_habitos_dict = {str(h['_id']): h for h in mongo.db.habitos.find(
+                {"_id": {"$in": [ObjectId(hid)
+                                 for hid in ultimos_habito_ids]}},
+                {"nombre": 1}
+            )}
+
+            for registro in ultimos_5_registros:
+                est_info = ultimos_estudiantes_dict.get(registro['usuario_id'])
+                hab_info = ultimos_habitos_dict.get(registro['habito_id'])
+                stats_resumen['ultimos_registros'].append({
+                    'estudiante_nombre': est_info['nombre_completo'] if est_info else 'Desconocido',
+                    'estudiante_numero_control': est_info['numero_control'] if est_info else 'N/A',
+                    'habito_nombre': hab_info['nombre'] if hab_info else 'Desconocido',
+                    'fecha': registro['fecha'],
+                    'estado': registro['estado']
+                })
+            # Ordenar por fecha ascendente (más viejo primero en la lista)
+            stats_resumen['ultimos_registros'].sort(key=lambda x: x['fecha'])
+
+            # d. Estudiantes sin actividad en los últimos 3 días
+            hace_3_dias = date.today() - timedelta(days=3)
+            # Encontrar estudiantes que tienen registros en los últimos 3 días
+            estudiantes_activos_reciente = set()
+            registros_3_dias = mongo.db.registros_habitos.find({
+                "usuario_id": {"$in": student_ids},
+                "fecha": {"$gte": hace_3_dias.isoformat()}
+            })
+            for r in registros_3_dias:
+                estudiantes_activos_reciente.add(r['usuario_id'])
+
+            # Estudiantes totales - estudiantes activos reciente = estudiantes inactivos
+            estudiantes_sin_actividad_ids = [
+                sid for sid in student_ids if sid not in estudiantes_activos_reciente]
+
+            # Obtener datos de los estudiantes inactivos
+            if estudiantes_sin_actividad_ids:
+                estudiantes_sin_actividad_cursor = mongo.db.usuarios.find(
+                    {"_id": {"$in": [ObjectId(sid)
+                                     for sid in estudiantes_sin_actividad_ids]}},
+                    {"nombre_completo": 1, "numero_control": 1,
+                        "email": 1}  # Puedes incluir más info
+                )
+                # Limitar a 5 para no abrumar
+                stats_resumen['estudiantes_sin_actividad'] = list(
+                    estudiantes_sin_actividad_cursor)[:5]
+
+        # Pasar todos los datos a la plantilla
+        return render_template(
+            'dashboard.html',
+            user=user,
+            grupos=grupos,
+            estudiantes=estudiantes,
+            dashboard_type='tutor',
+            stats_resumen=stats_resumen
+        )
 
     elif user['rol'] == 'estudiante':
         # Obtener hábitos activos base y personales
