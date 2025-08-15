@@ -890,6 +890,13 @@ def inject_now():
     return {'now': datetime.now}  # Hora local
 
 
+@app.context_processor
+def inject_user():
+    """Hace que 'current_user' esté disponible en todas las plantillas Jinja2."""
+    # Obtener el usuario actual desde 'g'
+    return dict(current_user=g.current_user)
+
+
 # Hacer que el usuario actual esté disponible en todas las plantillas
 @app.before_request
 def load_logged_in_user():
