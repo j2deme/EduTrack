@@ -1,0 +1,59 @@
+<!-- templates/profile.html -->
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Mi Perfil</h2>
+            
+            <div class="flex flex-col md:flex-row items-center gap-6 mb-6">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-24">
+                        <img src="{{ user.avatar_url }}" alt="Avatar de {{ user.nombre_completo }}" />
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold">{{ user.nombre_completo }}</h3>
+                    <p class="text-gray-600">{{ user.email }}</p>
+                    <div class="badge badge-primary mt-2">{{ user.rol.title() }}</div>
+                    {% if user.rol == 'tutor' %}
+                        <p class="text-sm mt-1"><i class="ti ti-building mr-1"></i> {{ user.area_adscripcion or 'Área no especificada' }}</p>
+                    {% elif user.rol == 'estudiante' %}
+                        <p class="text-sm mt-1"><i class="ti ti-school mr-1"></i> {{ user.carrera or 'Carrera no especificada' }} - Sem {{ user.semestre or 'N/A' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <form method="POST">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Nombre Completo</span>
+                        </label>
+                        <input type="text" name="nombre_completo" value="{{ user.nombre_completo }}" class="input input-bordered w-full" required />
+                    </div>
+                    
+                    <!-- Puedes agregar más campos editables aquí -->
+                    <!-- Ejemplo para estudiantes:
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Número de Control</span>
+                        </label>
+                        <input type="text" name="numero_control" value="{{ user.numero_control }}" class="input input-bordered w-full" readonly /> 
+                    </div>
+                    -->
+                    
+                </div>
+                <div class="card-actions justify-end mt-6">
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-device-floppy mr-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
