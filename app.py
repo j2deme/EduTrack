@@ -243,6 +243,213 @@ def admin_nuevo_habito():
     # Si es GET, mostrar el formulario vacío
     return render_template('admin_nuevo_habito.html')
 
+# --- Rutas para gestión de tutores (ADMIN)
+
+
+@app.route('/admin/tutores')
+@admin_required
+def admin_gestionar_tutores():
+    """Muestra la lista de tutores."""
+    # Obtener todos los usuarios con rol 'tutor'
+    tutores = list(mongo.db.usuarios.find({"rol": "tutor"}))
+    return render_template('admin_tutores.html', tutores=tutores)
+
+
+@app.route('/admin/tutores/nuevo', methods=['GET', 'POST'])
+@admin_required
+def admin_nuevo_tutor():
+    """Crea un nuevo usuario tutor."""
+    if request.method == 'POST':
+        nombre_completo = request.form.get('nombre_completo', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        rfc = request.form.get('rfc', '').strip().upper()  # RFC en mayúsculas
+        area_adscripcion = request.form.get('area_adscripcion', '').strip()
+        acreditacion = 'acreditacion' in request.form  # Checkbox
+
+        # Validaciones básicas
+        errors = []
+        if not nombre_completo:
+            errors.append("El nombre completo es obligatorio.")
+        if not email:
+            errors.append("El email es obligatorio.")
+        else:
+            # Validar formato de email básico (puedes usar librerías como 'email-validator' para más robustez)
+            if "@" not in email or "." not in email:
+                errors.append("El formato del email no es válido.")
+            # Verificar unicidad de email
+            elif mongo.db.usuarios.find_one({"email": email}):
+                errors.append("Ya existe un usuario con ese email.")
+
+        if not password:
+            errors.append("La contraseña es obligatoria.")
+        elif len(password) < 6:  # Ejemplo de validación de longitud
+            errors.append("La contraseña debe tener al menos 6 caracteres.")
+
+        # Puedes agregar validaciones para RFC si es necesario
+
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            # Volver a mostrar el formulario con los datos ingresados
+            return render_template('admin_nuevo_tutor.html',
+                                   nombre_completo=nombre_completo,
+                                   email=email,
+                                   rfc=rfc,
+                                   area_adscripcion=area_adscripcion,
+                                   acreditacion=acreditacion)
+
+        # Si todo es válido, crear el tutor
+        try:
+            hashed_password = generate_password_hash(password)
+
+            nuevo_tutor = {
+                "nombre_completo": nombre_completo,
+                "email": email,
+                "password": hashed_password,
+                "rol": "tutor",
+                "rfc": rfc,
+                "area_adscripcion": area_adscripcion,
+                "acreditacion": acreditacion
+            }
+
+            result = mongo.db.usuarios.insert_one(nuevo_tutor)
+            if result.inserted_id:
+                flash(
+                    f'Tutor "{nombre_completo}" creado exitosamente.', 'success')
+                return redirect(url_for('admin_gestionar_tutores'))
+            else:
+                raise Exception("No se pudo insertar el documento.")
+
+        except Exception as e:
+            app.logger.error(f"Error al crear tutor: {e}")
+            flash('Ocurrió un error al crear el tutor.', 'error')
+            return render_template('admin_nuevo_tutor.html',
+                                   nombre_completo=nombre_completo,
+                                   email=email,
+                                   rfc=rfc,
+                                   area_adscripcion=area_adscripcion,
+                                   acreditacion=acreditacion)
+
+    # Si es GET, mostrar el formulario vacío
+    return render_template('admin_nuevo_tutor.html')
+
+
+@app.route('/admin/tutores/editar/<tutor_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_editar_tutor(tutor_id):
+    """Edita un usuario tutor existente."""
+    try:
+        tutor = mongo.db.usuarios.find_one(
+            {"_id": ObjectId(tutor_id), "rol": "tutor"})
+        if not tutor:
+            flash('Tutor no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_tutores'))
+    except Exception:
+        flash('ID de tutor inválido.', 'error')
+        return redirect(url_for('admin_gestionar_tutores'))
+
+    if request.method == 'POST':
+        nombre_completo = request.form.get('nombre_completo', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        # La contraseña NO se edita aquí por seguridad. Se podría hacer en un flujo separado.
+        rfc = request.form.get('rfc', '').strip().upper()
+        area_adscripcion = request.form.get('area_adscripcion', '').strip()
+        acreditacion = 'acreditacion' in request.form  # Checkbox
+
+        # Validaciones básicas (menos la de unicidad de email, a menos que cambie)
+        errors = []
+        if not nombre_completo:
+            errors.append("El nombre completo es obligatorio.")
+        if not email:
+            errors.append("El email es obligatorio.")
+        else:
+            if "@" not in email or "." not in email:
+                errors.append("El formato del email no es válido.")
+            # Verificar unicidad de email (excluyendo al propio tutor)
+            elif mongo.db.usuarios.find_one({"email": email, "_id": {"$ne": ObjectId(tutor_id)}}):
+                errors.append("Ya existe otro usuario con ese email.")
+
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            # Volver a mostrar el formulario con los datos ingresados
+            return render_template('admin_editar_tutor.html', tutor=tutor)
+
+        # Si todo es válido, actualizar el tutor
+        try:
+            update_data = {
+                "nombre_completo": nombre_completo,
+                "email": email,
+                "rfc": rfc,
+                "area_adscripcion": area_adscripcion,
+                "acreditacion": acreditacion
+                # No actualizamos la contraseña aquí
+            }
+
+            # Si se proporciona una nueva contraseña, se puede manejar aquí.
+            # nueva_password = request.form.get('nueva_password', '')
+            # if nueva_password:
+            #     if len(nueva_password) < 6:
+            #          flash('La nueva contraseña debe tener al menos 6 caracteres.', 'error')
+            #          return render_template('admin_editar_tutor.html', tutor=tutor)
+            #     update_data['password'] = generate_password_hash(nueva_password)
+
+            result = mongo.db.usuarios.update_one(
+                {"_id": ObjectId(tutor_id)},
+                {"$set": update_data}
+            )
+            if result.matched_count > 0:
+                flash(
+                    f'Tutor "{nombre_completo}" actualizado exitosamente.', 'success')
+                return redirect(url_for('admin_gestionar_tutores'))
+            else:
+                flash('No se encontró el tutor para actualizar.', 'error')
+
+        except Exception as e:
+            app.logger.error(f"Error al actualizar tutor: {e}")
+            flash('Ocurrió un error al actualizar el tutor.', 'error')
+            return render_template('admin_editar_tutor.html', tutor=tutor)
+
+    # Si es GET, mostrar el formulario con los datos actuales del tutor
+    return render_template('admin_editar_tutor.html', tutor=tutor)
+
+
+# Usualmente DELETE, pero POST es más compatible con formularios simples
+@app.route('/admin/tutores/eliminar/<tutor_id>', methods=['POST'])
+@admin_required
+def admin_eliminar_tutor(tutor_id):
+    """Elimina un usuario tutor (CUIDADO: Esto es irreversible)."""
+    """Opcionalmente, podrías desactivarlo en lugar de eliminarlo."""
+    try:
+        # Verificar que el tutor exista y sea de rol 'tutor'
+        tutor = mongo.db.usuarios.find_one(
+            {"_id": ObjectId(tutor_id), "rol": "tutor"})
+        if not tutor:
+            flash('Tutor no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_tutores'))
+
+        # Verificar si el tutor tiene grupos asignados
+        grupos_asignados = mongo.db.grupos.count_documents(
+            {"tutor_id": tutor_id})
+        if grupos_asignados > 0:
+            flash(
+                f'No se puede eliminar el tutor "{tutor["nombre_completo"]}" porque tiene {grupos_asignados} grupo(s) asignado(s). Reasigna o elimina los grupos primero.', 'error')
+            return redirect(url_for('admin_gestionar_tutores'))
+
+        # Proceder con la eliminación (¡Esto es irreversible!)
+        result = mongo.db.usuarios.delete_one({"_id": ObjectId(tutor_id)})
+        if result.deleted_count > 0:
+            flash(
+                f'Tutor "{tutor["nombre_completo"]}" eliminado exitosamente.', 'success')
+        else:
+            flash('No se pudo eliminar el tutor.', 'error')
+    except Exception as e:
+        app.logger.error(f"Error al eliminar tutor: {e}")
+        flash('Ocurrió un error al eliminar el tutor.', 'error')
+
+    return redirect(url_for('admin_gestionar_tutores'))
+
 # --- API Endpoints ---
 
 

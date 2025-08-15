@@ -1,0 +1,69 @@
+<!-- templates/admin_tutores.html -->
+{% extends "base.html" %}
+
+{% block title %}Gestión de Tutores - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Gestión de Tutores</h1>
+        <a href="{{ url_for('admin_nuevo_tutor') }}" class="btn btn-tecnm">
+            <i class="ti ti-user-plus mr-2"></i> Nuevo Tutor
+        </a>
+    </div>
+
+    {% if tutores %}
+        <div class="overflow-x-auto bg-base-100 rounded-lg shadow">
+            <table class="table table-zebra">
+                <thead class="bg-tecnm-azul text-tecnm-blanco">
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Email</th>
+                        <th>RFC</th>
+                        <th>Área de Adscripción</th>
+                        <th>Acreditado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tutor in tutores %}
+                    <tr class="hover">
+                        <td>{{ tutor.nombre_completo }}</td>
+                        <td>{{ tutor.email }}</td>
+                        <td class="font-mono">{{ tutor.rfc or 'N/A' }}</td>
+                        <td>{{ tutor.area_adscripcion or 'N/A' }}</td>
+                        <td>
+                            {% if tutor.acreditacion %}
+                                <span class="badge badge-success"><i class="ti ti-check mr-1"></i> Sí</span>
+                            {% else %}
+                                <span class="badge badge-neutral"><i class="ti ti-x mr-1"></i> No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="{{ url_for('admin_editar_tutor', tutor_id=tutor._id) }}" class="btn btn-xs btn-info">
+                                    <i class="ti ti-edit mr-1"></i> Editar
+                                </a>
+                                <form method="POST" action="{{ url_for('admin_eliminar_tutor', tutor_id=tutor._id) }}" style="display:inline;" 
+                                      onsubmit="return confirm('¿Estás seguro de que deseas ELIMINAR al tutor &quot;{{ tutor.nombre_completo }}&quot;?\nEsta acción es irreversible y solo se permitirá si no tiene grupos asignados.');">
+                                    <button type="submit" class="btn btn-xs btn-error">
+                                        <i class="ti ti-trash-x mr-1"></i> Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="bg-base-100 rounded-lg shadow p-6 text-center">
+            <i class="ti ti-mood-sad text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-xl font-semibold mb-2">No se encontraron tutores.</h3>
+            <p class="mb-4">Aún no se han registrado tutores en el sistema.</p>
+            <a href="{{ url_for('admin_nuevo_tutor') }}" class="btn btn-tecnm"><i class="ti ti-user-plus mr-2"></i> Crear el primer tutor</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

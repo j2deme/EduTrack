@@ -1,0 +1,79 @@
+<!-- templates/admin_nuevo_tutor.html -->
+{% extends "base.html" %}
+
+{% block title %}Nuevo Tutor - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Crear Nuevo Tutor</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre Completo *</span>
+                    </label>
+                    <input type="text" name="nombre_completo" placeholder="Nombre(s) Apellido Paterno Apellido Materno" 
+                           value="{{ request.form.nombre_completo or nombre_completo or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Email *</span>
+                        <span class="label-text-alt">Este será su nombre de usuario.</span>
+                    </label>
+                    <input type="email" name="email" placeholder="tutor@tecnm.mx" 
+                           value="{{ request.form.email or email or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Contraseña *</span>
+                    </label>
+                    <input type="password" name="password" placeholder="Contraseña segura" 
+                           class="input input-bordered w-full" required />
+                     <label class="label">
+                         <span class="label-text-alt">Mínimo 6 caracteres recomendado.</span>
+                     </label>
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">RFC</span>
+                    </label>
+                    <input type="text" name="rfc" placeholder="RFC123456XXX" 
+                           value="{{ request.form.rfc or rfc or '' }}" 
+                           class="input input-bordered w-full font-mono uppercase" />
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Área de Adscripción</span>
+                    </label>
+                    <input type="text" name="area_adscripcion" placeholder="Departamento, División, etc." 
+                           value="{{ request.form.area_adscripcion or area_adscripcion or '' }}" 
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div class="form-control w-full mb-6">
+                    <label class="label cursor-pointer justify-start gap-2">
+                        <input type="checkbox" name="acreditacion" class="checkbox checkbox-primary" 
+                               {% if request.form.acreditacion or acreditacion %}checked{% endif %} />
+                        <span class="label-text">¿Cuenta con acreditación como tutor?</span>
+                    </label>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_tutores') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-user-plus mr-2"></i> Crear Tutor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

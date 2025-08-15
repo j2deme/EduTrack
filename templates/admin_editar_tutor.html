@@ -1,0 +1,94 @@
+<!-- templates/admin_editar_tutor.html -->
+{% extends "base.html" %}
+
+{% block title %}Editar Tutor - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Editar Tutor: {{ tutor.nombre_completo }}</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre Completo *</span>
+                    </label>
+                    <input type="text" name="nombre_completo" placeholder="Nombre(s) Apellido Paterno Apellido Materno" 
+                           value="{{ request.form.nombre_completo or tutor.nombre_completo }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Email *</span>
+                    </label>
+                    <input type="email" name="email" placeholder="tutor@tecnm.mx" 
+                           value="{{ request.form.email or tutor.email }}" 
+                           class="input input-bordered w-full" required />
+                     <label class="label">
+                         <span class="label-text-alt">Este es su nombre de usuario. Cambiarlo afectará su inicio de sesión.</span>
+                     </label>
+                </div>
+
+                <!-- Sección de contraseña (opcional) -->
+                <!--
+                <div class="collapse bg-base-200 mb-4 collapse-arrow">
+                    <input type="checkbox" class="peer" /> 
+                    <div class="collapse-title font-medium">
+                        <i class="ti ti-key mr-2"></i> Cambiar Contraseña
+                    </div>
+                    <div class="collapse-content"> 
+                        <div class="form-control w-full mb-4">
+                            <label class="label">
+                                <span class="label-text">Nueva Contraseña</span>
+                            </label>
+                            <input type="password" name="nueva_password" placeholder="Dejar en blanco para no cambiar" 
+                                   class="input input-bordered w-full" />
+                             <label class="label">
+                                 <span class="label-text-alt">Mínimo 6 caracteres.</span>
+                             </label>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">RFC</span>
+                    </label>
+                    <input type="text" name="rfc" placeholder="RFC123456XXX" 
+                           value="{{ request.form.rfc or tutor.rfc or '' }}" 
+                           class="input input-bordered w-full font-mono uppercase" />
+                </div>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Área de Adscripción</span>
+                    </label>
+                    <input type="text" name="area_adscripcion" placeholder="Departamento, División, etc." 
+                           value="{{ request.form.area_adscripcion or tutor.area_adscripcion or '' }}" 
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div class="form-control w-full mb-6">
+                    <label class="label cursor-pointer justify-start gap-2">
+                        <input type="checkbox" name="acreditacion" class="checkbox checkbox-primary" 
+                               {% if request.form.acreditacion %}checked
+                               {% elif tutor.acreditacion %}checked
+                               {% endif %} />
+                        <span class="label-text">¿Cuenta con acreditación como tutor?</span>
+                    </label>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_tutores') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-device-floppy mr-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
