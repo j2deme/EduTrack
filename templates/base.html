@@ -9,28 +9,51 @@
     <!-- Tailwind CSS + DaisyUI CDN -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+        /* 
+          Colores personalizados del TecNM 
+          Sobrescribimos las variables CSS del tema 'light' de DaisyUI
+        */
+        
+        /* Paleta de colores primaria */
+        --tecnm-azul: #004aad; /* Azul principal TecNM */
+        --tecnm-azul-claro: #4d79c9; /* Azul secundario */
+        --tecnm-gris: #6c757d; /* Gris */
+        --tecnm-blanco: #ffffff; /* Blanco */
+
+        .bg-tecnm-azul {
+        background-color: var(--tecnm-azul) !important;
+        }
+
+        .text-tecnm-azul {
+        color: var(--tecnm-azul) !important;
+        }
+
+        .text-tecnm-blanco {
+        color: var(--tecnm-blanco) !important;
+        }
+
+        .border-tecnm-azul {
+        border-color: var(--tecnm-azul) !important;
+        }
+
+        .btn-tecnm {
+        background-color: var(--tecnm-azul) !important;
+        color: white !important;
+        }
+
+        .btn-tecnm:hover {
+        background-color: var(--tecnm-azul-claro) !important;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     
     <!-- Tabler Icons CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    <style>
-        /* Colores institucionales del TecNM */
-        :root {
-          --tecnm-azul: #004aad; /* Azul principal TecNM */
-          --tecnm-azul-claro: #4d79c9; /* Azul secundario */
-          --tecnm-gris: #6c757d; /* Gris */
-          --tecnm-blanco: #ffffff;
-        }
-        .bg-tecnm-azul { background-color: var(--tecnm-azul); }
-        .text-tecnm-azul { color: var(--tecnm-azul); }
-        .text-tecnm-blanco { color: var(--tecnm-blanco); }
-        .border-tecnm-azul { border-color: var(--tecnm-azul); }
-        .btn-tecnm { background-color: var(--tecnm-azul); color: white; }
-        .btn-tecnm:hover { background-color: var(--tecnm-azul-claro); }
-    </style>
 </head>
 <body class="bg-base-200 text-base-content">
     <div class="drawer lg:drawer-open">
