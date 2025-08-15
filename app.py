@@ -1228,13 +1228,20 @@ def admin_gestionar_estudiantes(grupo_id):
             {"nombre_completo": 1, "numero_control": 1}
         ))
 
-    # Obtener lista de estudiantes NO en el grupo (para agregarlos)
-    # Esto puede ser pesado si hay muchos estudiantes. Considera paginación o búsqueda.
-    # Por ahora, obtenemos todos los estudiantes y filtramos en Python.
-    todos_los_estudiantes = list(mongo.db.usuarios.find(
-        {"rol": "estudiante"}, {"nombre_completo": 1, "numero_control": 1}))
-    estudiantes_disponibles = [e for e in todos_los_estudiantes if str(
-        e['_id']) not in grupo.get('estudiante_ids', [])]
+    # Obtener IDs de estudiantes que ya están en algún grupo
+    grupos = list(mongo.db.grupos.find({}, {"estudiante_ids": 1}))
+    estudiantes_asignados = set()
+    for g in grupos:
+        estudiantes_asignados.update(g.get('estudiante_ids', []))
+
+    # Obtener lista de estudiantes NO asignados a ningún grupo
+    estudiantes_disponibles = list(mongo.db.usuarios.find(
+        {
+            "rol": "estudiante",
+            "_id": {"$nin": [ObjectId(sid) for sid in estudiantes_asignados]}
+        },
+        {"nombre_completo": 1, "numero_control": 1}
+    ))
 
     return render_template('admin_gestionar_estudiantes.html',
                            grupo=grupo,
@@ -1327,7 +1334,6 @@ def admin_nuevo_estudiante():
                 "carrera": carrera,
                 "semestre": semestre,
                 "generacion": generacion
-                # Puedes agregar más campos aquí
             }
 
             result = mongo.db.usuarios.insert_one(nuevo_estudiante)
