@@ -143,6 +143,106 @@ def dashboard():
         flash('Rol de usuario no reconocido.', 'error')
         return redirect(url_for('logout'))
 
+# -- Rutas para gestión de hábitos (ADMIN)
+
+
+def admin_required(f):
+    """Decorador para requerir rol de administrador."""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            flash('Debes iniciar sesión.', 'error')
+            return redirect(url_for('login'))
+        if user.get('rol') != 'administrador':
+            flash('Acceso denegado. Se requiere rol de administrador.', 'error')
+            # Redirigir al dashboard del rol del usuario o a una página de error
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/admin/habitos')
+@admin_required
+def admin_habitos():
+    """Muestra la lista de hábitos base para gestión."""
+    # Obtener todos los hábitos base
+    habitos = list(mongo.db.habitos.find({"tipo": "base"}))
+    return render_template('admin_habitos.html', habitos=habitos)
+
+
+@app.route('/admin/habitos/toggle/<habit_id>', methods=['POST'])
+@admin_required
+def admin_toggle_habito(habit_id):
+    """Activa o desactiva un hábito base."""
+    try:
+        habit = mongo.db.habitos.find_one(
+            {"_id": ObjectId(habit_id), "tipo": "base"})
+        if not habit:
+            flash('Hábito no encontrado.', 'error')
+            return redirect(url_for('admin_habitos'))
+
+        nuevo_estado = not habit.get('activo', True)
+        mongo.db.habitos.update_one(
+            {"_id": ObjectId(habit_id)},
+            {"$set": {"activo": nuevo_estado}}
+        )
+
+        estado_str = "activado" if nuevo_estado else "desactivado"
+        flash(
+            f'Hábito "{habit["nombre"]}" {estado_str} correctamente.', 'success')
+    except Exception as e:
+        app.logger.error(f"Error al cambiar estado del hábito: {e}")
+        flash('Ocurrió un error al cambiar el estado del hábito.', 'error')
+
+    return redirect(url_for('admin_habitos'))
+
+
+@app.route('/admin/habitos/nuevo', methods=['GET', 'POST'])
+@admin_required
+def admin_nuevo_habito():
+    """Crea un nuevo hábito base."""
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        clave = request.form.get('clave', '').strip().lower().replace(
+            ' ', '_')  # Generar clave simple
+        categoria = request.form.get('categoria', '')
+
+        # Validaciones básicas
+        if not nombre or not clave or categoria not in ['Académico', 'Bienestar']:
+            flash('Por favor, completa todos los campos correctamente.', 'error')
+            return render_template('admin_nuevo_habito.html', nombre=nombre, clave=clave, categoria=categoria)
+
+        # Verificar si la clave ya existe
+        if mongo.db.habitos.find_one({"clave": clave, "tipo": "base"}):
+            flash(f'Ya existe un hábito con la clave "{clave}".', 'error')
+            return render_template('admin_nuevo_habito.html', nombre=nombre, clave=clave, categoria=categoria)
+
+        nuevo_habito = {
+            "nombre": nombre,
+            "clave": clave,
+            "categoria": categoria,
+            "activo": True,
+            "tipo": "base"  # Especificar que es un hábito base
+        }
+
+        try:
+            result = mongo.db.habitos.insert_one(nuevo_habito)
+            if result.inserted_id:
+                flash(f'Hábito "{nombre}" creado exitosamente.', 'success')
+                return redirect(url_for('admin_habitos'))
+            else:
+                raise Exception("No se pudo insertar el documento.")
+        except Exception as e:
+            app.logger.error(f"Error al crear hábito: {e}")
+            flash('Ocurrió un error al crear el hábito.', 'error')
+            return render_template('admin_nuevo_habito.html', nombre=nombre, clave=clave, categoria=categoria)
+
+    # Si es GET, mostrar el formulario vacío
+    return render_template('admin_nuevo_habito.html')
+
 # --- API Endpoints ---
 
 

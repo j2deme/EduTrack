@@ -1,0 +1,88 @@
+<!-- templates/admin_habitos.html -->
+{% extends "base.html" %}
+
+{% block title %}Gestión de Hábitos - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Gestión de Hábitos Base</h1>
+        <a href="{{ url_for('admin_nuevo_habito') }}" class="btn btn-tecnm">
+            <i class="ti ti-plus mr-2"></i> Nuevo Hábito
+        </a>
+    </div>
+
+    {% if habitos %}
+        <div class="overflow-x-auto bg-base-100 rounded-lg shadow">
+            <table class="table table-zebra">
+                <thead class="bg-tecnm-azul text-tecnm-blanco">
+                    <tr>
+                        <th>Clave</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for habito in habitos %}
+                    <tr class="hover">
+                        <td class="font-mono">{{ habito.clave }}</td>
+                        <td>{{ habito.nombre }}</td>
+                        <td>
+                            {% if habito.categoria == 'Académico' %}
+                                <span class="badge bg-blue-500">{{ habito.categoria }}</span>
+                            {% else %}
+                                <span class="badge bg-green-500">{{ habito.categoria }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if habito.activo %}
+                                <span class="badge badge-success">Activo</span>
+                            {% else %}
+                                <span class="badge badge-error">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="flex space-x-2">
+                                <!-- Botón para activar/desactivar -->
+                                <form method="POST" action="{{ url_for('admin_toggle_habito', habit_id=habito._id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-xs {% if habito.activo %}btn-warning{% else %}btn-success{% endif %}"
+                                            onclick="return confirm('¿Estás seguro de que deseas {% if habito.activo %}desactivar{% else %}activar{% endif %} el hábito &quot;{{ habito.nombre }}&quot;?');">
+                                        {% if habito.activo %}
+                                            <i class="ti ti-x mr-1"></i> Desactivar
+                                        {% else %}
+                                            <i class="ti ti-check mr-1"></i> Activar
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                
+                                <!-- Botón para editar (opcional, se implementaría después) -->
+                                <!--
+                                <a href="#" class="btn btn-xs btn-info">
+                                    <i class="ti ti-edit mr-1"></i> Editar
+                                </a>
+                                -->
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Nota sobre la regla de 3 hábitos activos mínimos -->
+        <div class="alert alert-warning mt-6">
+            <i class="ti ti-alert-circle mr-2"></i>
+            <span><strong>Nota:</strong> Al menos 3 hábitos de cada categoría (Académico, Bienestar) deben estar activos para los estudiantes.</span>
+        </div>
+    {% else %}
+        <div class="bg-base-100 rounded-lg shadow p-6 text-center">
+            <i class="ti ti-mood-sad text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-xl font-semibold mb-2">No se encontraron hábitos base.</h3>
+            <p class="mb-4">Parece que aún no se han creado hábitos base en el sistema.</p>
+            <a href="{{ url_for('admin_nuevo_habito') }}" class="btn btn-tecnm"><i class="ti ti-plus mr-2"></i> Crear el primer hábito</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

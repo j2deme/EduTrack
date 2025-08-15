@@ -1,0 +1,56 @@
+<!-- templates/admin_nuevo_habito.html -->
+{% extends "base.html" %}
+
+{% block title %}Nuevo Hábito - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Crear Nuevo Hábito Base</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre del Hábito *</span>
+                    </label>
+                    <input type="text" name="nombre" placeholder="Ej: Estudio diario" 
+                           value="{{ request.form.nombre or nombre or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Clave del Hábito *</span>
+                        <span class="label-text-alt">Usada internamente. Se generará automáticamente si se deja vacía.</span>
+                    </label>
+                    <input type="text" name="clave" placeholder="ej_estudio_diario" 
+                           value="{{ request.form.clave or clave or '' }}" 
+                           class="input input-bordered w-full font-mono" />
+                    <label class="label">
+                        <span class="label-text-alt text-warning"><i class="ti ti-alert-triangle mr-1"></i> Debe ser única.</span>
+                    </label>
+                </div>
+
+                <div class="form-control w-full mb-6">
+                    <label class="label">
+                        <span class="label-text">Categoría *</span>
+                    </label>
+                    <select name="categoria" class="select select-bordered w-full" required>
+                        <option disabled {% if not (request.form.categoria or categoria) %}selected{% endif %}>Selecciona una categoría</option>
+                        <option value="Académico" {% if (request.form.categoria or categoria) == 'Académico' %}selected{% endif %}>Académico</option>
+                        <option value="Bienestar" {% if (request.form.categoria or categoria) == 'Bienestar' %}selected{% endif %}>Bienestar</option>
+                    </select>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_habitos') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-device-floppy mr-2"></i> Crear Hábito
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

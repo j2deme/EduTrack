@@ -28,10 +28,10 @@
             <div class="card-body">
                 <h2 class="card-title text-tecnm-azul">Panel de Administrador</h2>
                 <p>Bienvenido, {{ user.nombre_completo }}. Desde aquí puedes gestionar usuarios, grupos y hábitos del sistema.</p>
-                <div class="card-actions justify-end">
-                    <a href="#" class="btn btn-outline btn-primary"><i class="ti ti-users mr-2"></i>Gestionar Tutores</a>
-                    <a href="#" class="btn btn-outline btn-secondary"><i class="ti ti-users-group mr-2"></i>Gestionar Grupos</a>
-                    <a href="#" class="btn btn-outline btn-accent"><i class="ti ti-checklist mr-2"></i>Gestionar Hábitos</a>
+                <div class="card-actions justify-start flex-wrap gap-2 mt-4"> 
+                    <a href="#" class="btn btn-outline"><i class="ti ti-users mr-2"></i>Gestionar Tutores</a>
+                    <a href="#" class="btn btn-outline"><i class="ti ti-users-group mr-2"></i>Gestionar Grupos</a>
+                    <a href="{{ url_for('admin_habitos') }}" class="btn btn-outline"><i class="ti ti-checklist mr-2"></i>Gestionar Hábitos</a>
                 </div>
             </div>
         </div>
