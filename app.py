@@ -7,6 +7,7 @@ import os
 from bson.objectid import ObjectId
 from datetime import datetime, date
 from config import Config
+import calendar
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -131,17 +132,124 @@ def dashboard():
 
     elif user['rol'] == 'estudiante':
         # Obtener hábitos activos base y personales
-        habitos_base = list(mongo.db.habitos.find({"activo": True}))
+        habitos_base = list(mongo.db.habitos.find(
+            {"activo": True, "tipo": "base"}))
         habitos_personales = list(mongo.db.habitos.find({
             "usuario_id": str(user['_id']),
             "tipo": "personal",
             "activo": True
         }))
-        return render_template('dashboard.html', user=user, habitos_base=habitos_base, habitos_personales=habitos_personales, dashboard_type='estudiante')
+
+        # --- NUEVO: Obtener registros del estudiante para hoy ---
+        from datetime import date
+        hoy = date.today().isoformat()
+        registros_hoy_cursor = mongo.db.registros_habitos.find({
+            "usuario_id": str(user['_id']),
+            "fecha": hoy
+        })
+
+        # Convertir los registros a un diccionario para fácil acceso {habito_id: registro}
+        registros_hoy_dict = {}
+        for registro in registros_hoy_cursor:
+            # Guardamos todo el documento del registro
+            registros_hoy_dict[registro['habito_id']] = registro
+
+        # Pasar los registros a la plantilla
+        return render_template('dashboard.html',
+                               user=user,
+                               habitos_base=habitos_base,
+                               habitos_personales=habitos_personales,
+                               registros_hoy=registros_hoy_dict,  # Nuevo argumento
+                               dashboard_type='estudiante')
 
     else:
         flash('Rol de usuario no reconocido.', 'error')
         return redirect(url_for('logout'))
+
+
+@app.route('/calendar')
+def calendar_view():
+    """Muestra la vista de calendario para el estudiante."""
+    user = get_current_user()
+    if not user or user['rol'] != 'estudiante':
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('login'))
+
+    # Obtener el mes y año actuales
+    today = date.today()
+    year = today.year
+    month = today.month
+
+    # 1. Obtener el primer y último día del mes
+    # CORRECCION: Usar el módulo calendar correctamente
+    first_day = date(year, month, 1)
+    # Usar calendar.monthrange (del MODULO calendar) para obtener el último día
+    last_day_num = calendar.monthrange(
+        year, month)[1]  # <--- Aquí estaba el error
+    last_day = date(year, month, last_day_num)
+
+    # 2. Obtener registros del estudiante para todo el mes
+    registros_mes_cursor = mongo.db.registros_habitos.find({
+        "usuario_id": str(user['_id']),
+        "fecha": {
+            "$gte": first_day.isoformat(),
+            "$lte": last_day.isoformat()
+        }
+    })
+
+    # 3. Procesar registros
+    registros_por_dia = {}
+    fechas_con_registros = set()
+
+    # Obtener hábitos activos
+    habitos_activos_base_ids = [str(h['_id']) for h in mongo.db.habitos.find(
+        {"activo": True, "tipo": "base"}, {"_id": 1})]
+    habitos_activos_personal_ids = [str(h['_id']) for h in mongo.db.habitos.find({
+        "usuario_id": str(user['_id']),
+        "tipo": "personal",
+        "activo": True
+    }, {"_id": 1})]
+    total_habitos_activos = len(
+        habitos_activos_base_ids) + len(habitos_activos_personal_ids)
+
+    # Manejar caso de división por cero si no hay hábitos activos
+    if total_habitos_activos == 0:
+        total_habitos_activos = 1  # Evitar división por cero, el progreso será 0% o 100%
+
+    for registro in registros_mes_cursor:
+        fecha_str = registro['fecha']
+        if fecha_str not in registros_por_dia:
+            registros_por_dia[fecha_str] = []
+        registros_por_dia[fecha_str].append(registro)
+        fechas_con_registros.add(fecha_str)
+
+    # 4. Generar datos del calendario usando el MODULO calendar
+    cal_matrix = calendar.monthcalendar(year, month)  # <--- También aquí
+
+    # Información para la plantilla
+    mes_nombre = first_day.strftime('%B').capitalize()
+    mes_nombre_es = {
+        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
+        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
+        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
+        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
+    }.get(mes_nombre, mes_nombre)
+
+    dias_semana_es = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
+
+    return render_template(
+        'student_calendar.html',
+        user=user,
+        year=year,
+        month=month,
+        mes_nombre_es=mes_nombre_es,
+        dias_semana_es=dias_semana_es,
+        calendar_matrix=cal_matrix,
+        registros_por_dia=registros_por_dia,
+        fechas_con_registros=fechas_con_registros,
+        total_habitos_activos=total_habitos_activos,
+        today=today
+    )
 
 # -- Rutas para gestión de hábitos (ADMIN)
 

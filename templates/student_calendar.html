@@ -1,0 +1,109 @@
+<!-- templates/student_calendar.html -->
+{% extends "base.html" %}
+
+{% block title %}Mi Calendario - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Mi Progreso en Hábitos</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">
+            <i class="ti ti-arrow-back mr-2"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+                <h2 class="card-title text-xl">
+                    <i class="ti ti-calendar-stats mr-2"></i>
+                    {{ mes_nombre_es }} {{ year }}
+                </h2>
+                <div class="text-sm text-gray-600">
+                    <span class="badge badge-success mr-2">■ Completado</span>
+                    <span class="badge badge-warning mr-2">■ Parcial</span>
+                    <span class="badge badge-neutral mr-2">■ Sin Registro</span>
+                    <span class="badge badge-primary badge-outline">■ Hoy</span>
+                </div>
+            </div>
+
+            <!-- Calendario -->
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <!-- Encabezado con días de la semana -->
+                    <thead>
+                        <tr>
+                            {% for dia in dias_semana_es %}
+                            <th class="text-center">{{ dia }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Filas de semanas -->
+                        {% for semana in calendar_matrix %}
+                        <tr>
+                            {% for dia_num in semana %}
+                            <td class="p-0 align-top">
+                                {% if dia_num == 0 %}
+                                    <!-- Día vacío (del mes anterior/siguiente) -->
+                                    <div class="h-24 md:h-32"></div>
+                                {% else %}
+                                    <!-- Día del mes -->
+                                    {% set fecha_str = "{}-{:02d}-{:02d}".format(year, month, dia_num) %}
+                                    {% set registros_dia = registros_por_dia.get(fecha_str, []) %}
+                                    {% set tiene_registros = fecha_str in fechas_con_registros %}
+                                    {% set es_hoy = (fecha_str == today.isoformat()) %}
+                                    
+                                    <div class="h-24 md:h-32 p-1 border border-base-200 {% if es_hoy %}bg-primary/10 border-primary{% endif %}">
+                                        <div class="font-semibold text-right text-sm {% if es_hoy %}text-primary font-bold{% endif %}">
+                                            {{ dia_num }}
+                                            {% if es_hoy %}
+                                            <span class="badge badge-primary badge-xs ml-1">Hoy</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if tiene_registros %}
+                                            <div class="mt-1 text-xs">
+                                                <!-- Calcular progreso -->
+                                                {% set progreso = (registros_dia|length / total_habitos_activos * 100) | int %}
+                                                {% if progreso >= 100 %}
+                                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div class="bg-success h-1.5 rounded-full" style="width: {{ [progreso, 100] | min }}%"></div>
+                                                    </div>
+                                                    <div class="text-success font-medium mt-1">Completado</div>
+                                                {% elif progreso > 0 %}
+                                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div class="bg-warning h-1.5 rounded-full" style="width: {{ [progreso, 100] | min }}%"></div>
+                                                    </div>
+                                                    <div class="text-warning">{{ progreso }}% Completado</div>
+                                                {% else %}
+                                                     <div class="text-gray-500 italic">Registrado</div>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="text-xs text-gray-400 italic mt-1">Sin registro</div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-lg"><i class="ti ti-info-circle mr-2"></i> Leyenda</h2>
+            <ul class="list-disc list-inside text-sm space-y-1">
+                <li><span class="font-semibold">Completado:</span> Registraste todos tus hábitos activos para ese día.</li>
+                <li><span class="font-semibold">Parcial:</span> Registraste algunos, pero no todos tus hábitos activos.</li>
+                <li><span class="font-semibold">Sin Registro:</span> No se encontraron registros para ese día.</li>
+                <li><span class="font-semibold">Hoy:</span> El día actual está resaltado.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
