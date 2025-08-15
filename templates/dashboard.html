@@ -36,75 +36,74 @@
             </div>
         </div>
 
-    {% elif dashboard_type == 'tutor' %}
-        <div class="card bg-base-100 shadow-xl mb-6">
-            <div class="card-body">
-                <h2 class="card-title text-tecnm-azul">Mis Grupos Asignados</h2>
-                {% if grupos %}
-                    <div class="overflow-x-auto">
-                        <table class="table">
-                            <thead>
+    {% if dashboard_type == 'tutor' %}
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Mis Grupos Asignados</h2>
+            {% if grupos %}
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre del Grupo</th>
+                                <th>Número de Estudiantes</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grupo in grupos %}
                                 <tr>
-                                    <th>Nombre del Grupo</th>
-                                    <th>Número de Estudiantes</th>
-                                    <th>Acciones</th>
+                                    <td>{{ grupo.nombre }}</td>
+                                    <td>{{ grupo.estudiante_ids | length }}</td>
+                                    <td>
+                                        <a href="{{ url_for('stats', grupo_id=grupo._id) }}" class="btn btn-sm btn-outline btn-primary">
+                                            <i class="ti ti-chart-bar mr-1"></i>Ver Estadísticas
+                                        </a>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {% for grupo in grupos %}
-                                    <tr>
-                                        <td>{{ grupo.nombre }}</td>
-                                        <td>{{ grupo.estudiante_ids | length }}</td>
-                                        <td>
-                                            <a href="{{ url_for('stats', grupo_id=grupo._id) }}" class="btn btn-sm btn-outline btn-primary">
-                                                <i class="ti ti-chart-bar mr-1"></i>Ver Estadísticas
-                                            </a>
-                                            <!-- <a href="#" class="btn btn-sm btn-outline btn-secondary">Ver Estudiantes</a> -->
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p>No tienes grupos asignados actualmente.</p>
-                {% endif %}
-            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No tienes grupos asignados actualmente.</p>
+            {% endif %}
         </div>
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title text-tecnm-azul">Mis Tutorados</h2>
-                {% if estudiantes %}
-                    <div class="overflow-x-auto">
-                        <table class="table">
-                            <thead>
+    </div>
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Mis Tutorados</h2>
+            {% if estudiantes %}
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Número de Control</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for estudiante in estudiantes %}
                                 <tr>
-                                    <th>Nombre</th>
-                                    <th>Número de Control</th>
-                                    <th>Acciones</th>
+                                    <td>{{ estudiante.nombre_completo }}</td>
+                                    <td>{{ estudiante.numero_control }}</td>
+                                    <td>
+                                        <a href="{{ url_for('stats_user', user_id=estudiante._id) }}" class="btn btn-sm btn-outline btn-accent">
+                                            <i class="ti ti-user-check mr-1"></i>Ver Progreso
+                                        </a>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {% for estudiante in estudiantes %}
-                                    <tr>
-                                        <td>{{ estudiante.nombre_completo }}</td>
-                                        <td>{{ estudiante.numero_control }}</td>
-                                        <td>
-                                            <a href="{{ url_for('stats_user', user_id=estudiante._id) }}" class="btn btn-sm btn-outline btn-accent">
-                                                <i class="ti ti-user-check mr-1"></i>Ver Progreso
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p>No tienes estudiantes asignados en tus grupos.</p>
-                {% endif %}
-            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No tienes estudiantes asignados en tus grupos.</p>
+            {% endif %}
         </div>
-
+    </div>
+    {% endif %}
     {% elif dashboard_type == 'estudiante' %}
        <div class="card bg-base-100 shadow-xl mb-6" x-data="dashboardEstudianteAutomatico()" x-init="initializeHabits()">
             <div class="card-body">

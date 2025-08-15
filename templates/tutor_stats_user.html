@@ -1,0 +1,155 @@
+<!-- templates/tutor_stats_user.html -->
+{% extends "base.html" %}
+
+{% block title %}Estadísticas de {{ estudiante.nombre_completo }} - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-tecnm-azul">Progreso de {{ estudiante.nombre_completo }}</h1>
+            <p class="text-gray-600"># Control: {{ estudiante.numero_control }}</p>
+        </div>
+        <a href="{{ url_for('stats') }}" class="btn btn-ghost btn-sm">
+            <i class="ti ti-arrow-back mr-2"></i> Volver a Estadísticas
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Tarjeta de Resumen -->
+        <div class="card bg-base-100 shadow-xl border border-base-300 lg:col-span-1">
+            <div class="card-body">
+                <h2 class="card-title text-lg"><i class="ti ti-user-circle mr-2"></i> Resumen del Estudiante</h2>
+                <ul class="mt-4 space-y-2">
+                    <li><span class="font-medium">Nombre:</span> {{ estudiante.nombre_completo }}</li>
+                    <li><span class="font-medium"># Control:</span> {{ estudiante.numero_control }}</li>
+                    <li><span class="font-medium">Carrera:</span> {{ estudiante.carrera or 'N/A' }}</li>
+                    <li><span class="font-medium">Semestre:</span> {{ estudiante.semestre or 'N/A' }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Conteo de Estados -->
+        <div class="card bg-base-100 shadow-xl border border-base-300 lg:col-span-2">
+            <div class="card-body">
+                <h2 class="card-title text-lg"><i class="ti ti-list-check mr-2"></i> Resumen de Registros (Últimos 30 días)</h2>
+                <div class="flex flex-wrap justify-around items-center text-center mt-4 gap-4">
+                    <div class="stat">
+                        <div class="stat-title">Cumplidos</div>
+                        <div class="stat-value text-success">{{ conteo_estados.cumplido }}</div>
+                        <div class="stat-desc">Hábitos marcados como cumplidos</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Incumplidos</div>
+                        <div class="stat-value text-error">{{ conteo_estados.incumplido }}</div>
+                        <div class="stat-desc">Hábitos marcados como incumplidos</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">No Aplica</div>
+                        <div class="stat-value text-info">{{ conteo_estados.no_aplica }}</div>
+                        <div class="stat-desc">Hábitos marcados como no aplica</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Progreso (simulado con barras) -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul"><i class="ti ti-chart-line mr-2"></i> Progreso Diario (Últimos 30 días)</h2>
+            <p class="text-gray-600 mb-4">Número de hábitos cumplidos por día.</p>
+            
+            {% if fechas_chart %}
+            <div class="overflow-x-auto">
+                <div class="flex items-end h-40 gap-1 min-w-max">
+                    {% for i in range(fechas_chart|length) %}
+                        {% set fecha = fechas_chart[i] %}
+                        {% set cumplidos = cumplidos_chart[i] %}
+                        {% set total = totales_chart[i] %}
+                        {% set altura_max = 160 %} <!-- Altura máxima del gráfico -->
+                        {% if total > 0 %}
+                            {% set porcentaje = (cumplidos / total) * 100 %}
+                            {% set altura = (porcentaje / 100) * altura_max %}
+                        {% else %}
+                            {% set altura = 0 %}
+                        {% endif %}
+                        <div class="tooltip" data-tip="{{ fecha }}: {{ cumplidos }}/{{ total }}">
+                            <div class="bg-tecnm-azul w-6 md:w-8 rounded-t" style="height: {{ [altura, altura_max] | min }}px;"></div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="flex text-xs justify-between mt-2 overflow-x-auto pb-2">
+                    {% for fecha in fechas_chart %}
+                    <span class="px-1">{{ fecha.split('-')[2] }}</span> <!-- Solo el día -->
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 italic text-center py-8">No hay datos de progreso en los últimos 30 días.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Progreso por Hábito (Últimos 7 días) -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul"><i class="ti ti-checklist mr-2"></i> Cumplimiento por Hábito (Últimos 7 días)</h2>
+            <p class="text-gray-600 mb-4">Porcentaje de días cumplidos para cada hábito activo.</p>
+            
+            {% if progreso_por_habito %}
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Hábito</th>
+                            <th>Categoría</th>
+                            <th>Tipo</th>
+                            <th>Cumplido / Total</th>
+                            <th>Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for habito_id, data in progreso_por_habito.items() %}
+                        <tr>
+                            <td>{{ data.nombre }}</td>
+                            <td>
+                                {% if data.categoria == 'Académico' %}
+                                    <span class="badge badge-primary">{{ data.categoria }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ data.categoria }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if data.tipo == 'base' %}
+                                    <span class="badge badge-outline">Base</span>
+                                {% else %}
+                                    <span class="badge badge-outline badge-accent">Personal</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ data.cumplido }} / {{ data.total }}</td>
+                            <td>
+                                <div class="flex items-center">
+                                    <span class="mr-2">{{ data.porcentaje }}%</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-1.5">
+                                        <div class="h-1.5 rounded-full 
+                                            {% if data.porcentaje >= 75 %}bg-success
+                                            {% elif data.porcentaje >= 50 %}bg-warning
+                                            {% else %}bg-error
+                                            {% endif %}" 
+                                             style="width: {{ [data.porcentaje, 100] | min }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 italic text-center py-4">No hay hábitos activos registrados en los últimos 7 días.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

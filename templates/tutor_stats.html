@@ -1,0 +1,106 @@
+<!-- templates/tutor_stats.html -->
+{% extends "base.html" %}
+
+{% block title %}Estadísticas de Grupo - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Estadísticas de Mis Grupos</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">
+            <i class="ti ti-arrow-back mr-2"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    {% if stats_por_grupo %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for grupo_stats in stats_por_grupo %}
+            <div class="card bg-base-100 shadow-xl border border-base-300">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">{{ grupo_stats.nombre_grupo }}</h2>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-sm text-gray-600">{{ grupo_stats.num_estudiantes }} estudiantes</span>
+                        <span class="badge badge-lg 
+                            {% if grupo_stats.promedio_cumplimiento >= 75 %}badge-success
+                            {% elif grupo_stats.promedio_cumplimiento >= 50 %}badge-warning
+                            {% else %}badge-error
+                            {% endif %}">
+                            {{ grupo_stats.promedio_cumplimiento }}%
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+                        <div class="bg-tecnm-azul h-2.5 rounded-full" 
+                             style="width: {{ [grupo_stats.promedio_cumplimiento, 100] | min }}%"></div>
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{{ url_for('stats') }}#grupo-{{ grupo_stats.grupo_id }}" class="btn btn-sm btn-outline btn-primary">
+                            <i class="ti ti-chart-bar mr-1"></i> Detalles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% for grupo_stats in stats_por_grupo %}
+        <div class="card bg-base-100 shadow-xl mb-6" id="grupo-{{ grupo_stats.grupo_id }}">
+            <div class="card-body">
+                <h2 class="card-title text-tecnm-azul">{{ grupo_stats.nombre_grupo }}</h2>
+                <p class="text-gray-600 mb-4">Promedio de cumplimiento: <span class="font-semibold">{{ grupo_stats.promedio_cumplimiento }}%</span></p>
+                
+                {% if grupo_stats.estudiantes_data %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead class="bg-tecnm-azul text-tecnm-blanco">
+                            <tr>
+                                <th># Control</th>
+                                <th>Nombre</th>
+                                <th>Promedio de Cumplimiento (30 días)</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for est in grupo_stats.estudiantes_data %}
+                            <tr>
+                                <td class="font-mono">{{ est.numero_control }}</td>
+                                <td>{{ est.nombre }}</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="mr-2">{{ est.promedio }}%</span>
+                                        <div class="w-24 bg-gray-200 rounded-full h-1.5">
+                                            <div class="h-1.5 rounded-full 
+                                                {% if est.promedio >= 75 %}bg-success
+                                                {% elif est.promedio >= 50 %}bg-warning
+                                                {% else %}bg-error
+                                                {% endif %}" 
+                                                 style="width: {{ [est.promedio, 100] | min }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('stats_user', user_id=est.id) }}" class="btn btn-xs btn-outline btn-accent">
+                                        <i class="ti ti-user-check mr-1"></i> Ver Progreso
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 italic">No hay estudiantes en este grupo.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+        <div class="bg-base-100 rounded-lg shadow p-6 text-center">
+            <i class="ti ti-mood-sad text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-xl font-semibold mb-2">No tienes grupos asignados.</h3>
+            <p class="mb-4">Contacta al administrador para que te asigne grupos.</p>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-tecnm"><i class="ti ti-arrow-back mr-2"></i> Volver al Dashboard</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

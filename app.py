@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 import os
 from bson.objectid import ObjectId
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from config import Config
 import calendar
 
@@ -249,6 +249,229 @@ def calendar_view():
         fechas_con_registros=fechas_con_registros,
         total_habitos_activos=total_habitos_activos,
         today=today
+    )
+
+
+@app.route('/stats')
+def stats():
+    """Muestra estadísticas generales para el tutor (por grupo)."""
+    user = get_current_user()
+    if not user or user['rol'] != 'tutor':
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('login'))
+
+    # Obtener grupos asignados al tutor
+    grupos = list(mongo.db.grupos.find({"tutor_id": str(user['_id'])}))
+
+    # Para cada grupo, calcular estadísticas
+    stats_por_grupo = []
+    for grupo in grupos:
+        grupo_id = str(grupo['_id'])
+        nombre_grupo = grupo['nombre']
+
+        # Obtener IDs de estudiantes del grupo
+        student_ids_str = grupo.get('estudiante_ids', [])
+        if not student_ids_str:
+            # Si no hay estudiantes, estadísticas vacías
+            stats_por_grupo.append({
+                'grupo_id': grupo_id,
+                'nombre_grupo': nombre_grupo,
+                'num_estudiantes': 0,
+                'promedio_cumplimiento': 0.0,
+                'estudiantes_data': []  # Para detalles si se expande
+            })
+            continue
+
+        student_ids_oid = [ObjectId(sid) for sid in student_ids_str]
+
+        # Obtener datos de estudiantes
+        estudiantes_grupo = list(mongo.db.usuarios.find(
+            {"_id": {"$in": student_ids_oid}},
+            {"nombre_completo": 1, "numero_control": 1}
+        ))
+
+        # Obtener hábitos activos base (los personales son muy individuales para stats grupales)
+        habitos_activos_base_ids = [str(h['_id']) for h in mongo.db.habitos.find(
+            {"activo": True, "tipo": "base"}, {"_id": 1})]
+        total_habitos_base = len(habitos_activos_base_ids)
+
+        if total_habitos_base == 0:
+            total_habitos_base = 1  # Evitar división por cero
+
+        # Obtener registros de los últimos 30 días para estos estudiantes y hábitos base
+        hace_30_dias = date.today() - timedelta(days=30)
+        registros_recientes = list(mongo.db.registros_habitos.find({
+            "usuario_id": {"$in": student_ids_str},
+            "habito_id": {"$in": habitos_activos_base_ids},
+            "fecha": {"$gte": hace_30_dias.isoformat()}
+        }))
+
+        # Calcular estadísticas
+        # 1. Promedio de cumplimiento del grupo
+        total_registros_esperados = len(
+            student_ids_str) * total_habitos_base * 30  # Aproximación
+        total_registros_reales = len(registros_recientes)
+
+        if total_registros_esperados > 0:
+            promedio_cumplimiento = (
+                total_registros_reales / total_registros_esperados) * 100
+        else:
+            promedio_cumplimiento = 0.0
+
+        # 2. Datos por estudiante (para futuras visualizaciones)
+        estudiantes_data = []
+        for estudiante in estudiantes_grupo:
+            est_id = str(estudiante['_id'])
+            # Contar registros de este estudiante en el periodo
+            registros_estudiante = [
+                r for r in registros_recientes if r['usuario_id'] == est_id]
+            # Calcular su propio promedio
+            registros_esperados_est = total_habitos_base * 30
+            if registros_esperados_est > 0:
+                promedio_estudiante = (
+                    len(registros_estudiante) / registros_esperados_est) * 100
+            else:
+                promedio_estudiante = 0.0
+
+            estudiantes_data.append({
+                'id': est_id,
+                'nombre': estudiante['nombre_completo'],
+                'numero_control': estudiante['numero_control'],
+                'promedio': round(promedio_estudiante, 2)
+            })
+
+        stats_por_grupo.append({
+            'grupo_id': grupo_id,
+            'nombre_grupo': nombre_grupo,
+            'num_estudiantes': len(estudiantes_grupo),
+            'promedio_cumplimiento': round(promedio_cumplimiento, 2),
+            'estudiantes_data': estudiantes_data
+        })
+
+    return render_template('tutor_stats.html', user=user, stats_por_grupo=stats_por_grupo)
+
+
+@app.route('/stats/user/<user_id>')
+def stats_user(user_id):
+    """Muestra estadísticas detalladas de un estudiante específico."""
+    tutor = get_current_user()
+    if not tutor or tutor['rol'] != 'tutor':
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('login'))
+
+    try:
+        # Verificar que el estudiante pertenece a un grupo del tutor
+        # 1. Obtener grupos del tutor
+        grupos_tutor_ids = [g['_id'] for g in mongo.db.grupos.find(
+            {"tutor_id": str(tutor['_id'])}, {"_id": 1})]
+        # 2. Verificar si el estudiante está en alguno de esos grupos
+        estudiante_obj = mongo.db.usuarios.find_one({
+            "_id": ObjectId(user_id),
+            "rol": "estudiante"
+        })
+        if not estudiante_obj:
+            flash('Estudiante no encontrado.', 'error')
+            return redirect(url_for('stats'))  # O al dashboard
+
+        # Verificar pertenencia a grupo
+        pertenece_al_tutor = mongo.db.grupos.find_one({
+            "_id": {"$in": grupos_tutor_ids},
+            "estudiante_ids": user_id
+        })
+        if not pertenece_al_tutor:
+            flash(
+                'No tienes permiso para ver las estadísticas de este estudiante.', 'error')
+            return redirect(url_for('stats'))
+
+        # --- Recopilar datos del estudiante ---
+        estudiante = estudiante_obj
+
+        # 1. Obtener hábitos activos base y personales del estudiante
+        habitos_base = list(mongo.db.habitos.find(
+            {"activo": True, "tipo": "base"}))
+        habitos_personales = list(mongo.db.habitos.find({
+            "usuario_id": user_id,
+            "tipo": "personal",
+            "activo": True
+        }))
+
+        # 2. Obtener registros de los últimos 30 días
+        hace_30_dias = date.today() - timedelta(days=30)
+        registros_30_dias = list(mongo.db.registros_habitos.find({
+            "usuario_id": user_id,
+            "fecha": {"$gte": hace_30_dias.isoformat()}
+        }).sort("fecha", 1))  # Ordenar por fecha
+
+        # 3. Procesar datos para la vista
+        # a. Conteo por estado en los últimos 30 días
+        conteo_estados = {'cumplido': 0, 'incumplido': 0, 'no_aplica': 0}
+        for registro in registros_30_dias:
+            estado = registro.get('estado')
+            if estado in conteo_estados:
+                conteo_estados[estado] += 1
+
+        # b. Progreso por día (para gráfico)
+        # Crear un diccionario {fecha: conteo_cumplidos}
+        registros_por_fecha = {}
+        for registro in registros_30_dias:
+            fecha = registro['fecha']
+            if fecha not in registros_por_fecha:
+                registros_por_fecha[fecha] = {'cumplido': 0, 'total': 0}
+            registros_por_fecha[fecha]['total'] += 1
+            if registro['estado'] == 'cumplido':
+                registros_por_fecha[fecha]['cumplido'] += 1
+
+        # Convertir a listas ordenadas para el gráfico
+        fechas_chart = sorted(registros_por_fecha.keys())
+        cumplidos_chart = [registros_por_fecha[f]['cumplido']
+                           for f in fechas_chart]
+        totales_chart = [registros_por_fecha[f]['total'] for f in fechas_chart]
+
+        # c. Progreso por hábito (últimos 7 días como ejemplo)
+        hace_7_dias = date.today() - timedelta(days=7)
+        registros_7_dias = [
+            r for r in registros_30_dias if r['fecha'] >= hace_7_dias.isoformat()]
+
+        progreso_por_habito = {}
+        # Inicializar con todos los hábitos activos
+        for habito in habitos_base + habitos_personales:
+            progreso_por_habito[str(habito['_id'])] = {
+                'nombre': habito['nombre'],
+                'categoria': habito['categoria'],
+                'tipo': habito['tipo'],
+                'cumplido': 0,
+                'total': 0
+            }
+        # Contar registros
+        for registro in registros_7_dias:
+            habito_id = registro['habito_id']
+            if habito_id in progreso_por_habito:
+                progreso_por_habito[habito_id]['total'] += 1
+                if registro['estado'] == 'cumplido':
+                    progreso_por_habito[habito_id]['cumplido'] += 1
+
+        # Calcular porcentajes
+        for habito_id, data in progreso_por_habito.items():
+            if data['total'] > 0:
+                data['porcentaje'] = round(
+                    (data['cumplido'] / data['total']) * 100, 2)
+            else:
+                data['porcentaje'] = 0.0
+
+    except Exception as e:
+        app.logger.error(f"Error al obtener stats de usuario {user_id}: {e}")
+        flash('Ocurrió un error al cargar las estadísticas.', 'error')
+        return redirect(url_for('stats'))
+
+    return render_template(
+        'tutor_stats_user.html',
+        tutor=tutor,
+        estudiante=estudiante,
+        conteo_estados=conteo_estados,
+        fechas_chart=fechas_chart,
+        cumplidos_chart=cumplidos_chart,
+        totales_chart=totales_chart,
+        progreso_por_habito=progreso_por_habito
     )
 
 # -- Rutas para gestión de hábitos (ADMIN)
