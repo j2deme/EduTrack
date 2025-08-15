@@ -1,0 +1,44 @@
+<!-- templates/admin_asignar_tutor.html -->
+{% extends "base.html" %}
+
+{% block title %}Asignar Tutor - EduTrak{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Asignar Tutor al Grupo: {{ grupo.nombre }}</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-6">
+                    <label class="label">
+                        <span class="label-text">Seleccionar Tutor</span>
+                    </label>
+                    <select name="tutor_id" class="select select-bordered w-full" required>
+                        <option value="none" {% if not tutor_actual_id %}selected{% endif %}>-- Desasignar Tutor --</option>
+                        {% for tutor in tutores %}
+                            <option value="{{ tutor._id }}" {% if tutor_actual_id == tutor._id|string %}selected{% endif %}>
+                                {{ tutor.nombre_completo }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_grupos') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-user-check mr-2"></i> {% if tutor_actual_id %}Cambiar{% else %}Asignar{% endif %} Tutor
+                    </button>
+                </div>
+            </form>
+            
+            {% if tutor_actual_id %}
+            <div class="alert alert-info mt-4">
+                <i class="ti ti-info-circle mr-2"></i>
+                <span>Tutor actualmente asignado: <strong>{{ grupo.tutor_nombre }}</strong></span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

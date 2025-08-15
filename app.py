@@ -450,6 +450,319 @@ def admin_eliminar_tutor(tutor_id):
 
     return redirect(url_for('admin_gestionar_tutores'))
 
+# --- Rutas para gestión de grupos (ADMIN)
+
+
+@app.route('/admin/grupos')
+@admin_required
+def admin_gestionar_grupos():
+    """Muestra la lista de grupos."""
+    try:
+        # Obtener todos los grupos
+        grupos_cursor = mongo.db.grupos.find()
+        grupos = []
+        for grupo in grupos_cursor:
+            # Obtener información del tutor
+            tutor = mongo.db.usuarios.find_one({"_id": ObjectId(grupo['tutor_id'])}, {
+                                               "nombre_completo": 1}) if grupo.get('tutor_id') else None
+            grupo['tutor_nombre'] = tutor['nombre_completo'] if tutor else 'No asignado'
+
+            # Contar estudiantes
+            grupo['num_estudiantes'] = len(grupo.get('estudiante_ids', []))
+
+            grupos.append(grupo)
+
+        return render_template('admin_grupos.html', grupos=grupos)
+    except Exception as e:
+        app.logger.error(f"Error al obtener grupos: {e}")
+        flash('Ocurrió un error al cargar la lista de grupos.', 'error')
+        return render_template('admin_grupos.html', grupos=[])
+
+
+@app.route('/admin/grupos/nuevo', methods=['GET', 'POST'])
+@admin_required
+def admin_nuevo_grupo():
+    """Crea un nuevo grupo."""
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        ciclo_escolar = request.form.get(
+            'ciclo_escolar', '').strip()  # Ej: 2024-A
+
+        # Validaciones básicas
+        if not nombre:
+            flash('El nombre del grupo es obligatorio.', 'error')
+            return render_template('admin_nuevo_grupo.html', nombre=nombre, ciclo_escolar=ciclo_escolar)
+
+        # Verificar unicidad de nombre (opcional, pero buena práctica)
+        if mongo.db.grupos.find_one({"nombre": nombre}):
+            flash(f'Ya existe un grupo con el nombre "{nombre}".', 'error')
+            return render_template('admin_nuevo_grupo.html', nombre=nombre, ciclo_escolar=ciclo_escolar)
+
+        nuevo_grupo = {
+            "nombre": nombre,
+            "ciclo_escolar": ciclo_escolar,
+            "tutor_id": None,  # Se asigna después
+            "estudiante_ids": []  # Lista vacía inicialmente
+        }
+
+        try:
+            result = mongo.db.grupos.insert_one(nuevo_grupo)
+            if result.inserted_id:
+                flash(f'Grupo "{nombre}" creado exitosamente.', 'success')
+                return redirect(url_for('admin_gestionar_grupos'))
+            else:
+                raise Exception("No se pudo insertar el documento.")
+        except Exception as e:
+            app.logger.error(f"Error al crear grupo: {e}")
+            flash('Ocurrió un error al crear el grupo.', 'error')
+            return render_template('admin_nuevo_grupo.html', nombre=nombre, ciclo_escolar=ciclo_escolar)
+
+    # Si es GET, mostrar el formulario vacío
+    return render_template('admin_nuevo_grupo.html')
+
+
+@app.route('/admin/grupos/editar/<grupo_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_editar_grupo(grupo_id):
+    """Edita un grupo existente (nombre, ciclo)."""
+    try:
+        grupo = mongo.db.grupos.find_one({"_id": ObjectId(grupo_id)})
+        if not grupo:
+            flash('Grupo no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_grupos'))
+    except Exception:
+        flash('ID de grupo inválido.', 'error')
+        return redirect(url_for('admin_gestionar_grupos'))
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        ciclo_escolar = request.form.get('ciclo_escolar', '').strip()
+
+        # Validaciones básicas
+        if not nombre:
+            flash('El nombre del grupo es obligatorio.', 'error')
+            return render_template('admin_editar_grupo.html', grupo=grupo)
+
+        # Verificar unicidad de nombre (excluyendo el grupo actual)
+        if mongo.db.grupos.find_one({"nombre": nombre, "_id": {"$ne": ObjectId(grupo_id)}}):
+            flash(f'Ya existe otro grupo con el nombre "{nombre}".', 'error')
+            return render_template('admin_editar_grupo.html', grupo=grupo)
+
+        try:
+            update_data = {
+                "nombre": nombre,
+                "ciclo_escolar": ciclo_escolar
+            }
+
+            result = mongo.db.grupos.update_one(
+                {"_id": ObjectId(grupo_id)},
+                {"$set": update_data}
+            )
+            if result.matched_count > 0:
+                flash(f'Grupo "{nombre}" actualizado exitosamente.', 'success')
+                return redirect(url_for('admin_gestionar_grupos'))
+            else:
+                flash('No se encontró el grupo para actualizar.', 'error')
+
+        except Exception as e:
+            app.logger.error(f"Error al actualizar grupo: {e}")
+            flash('Ocurrió un error al actualizar el grupo.', 'error')
+            return render_template('admin_editar_grupo.html', grupo=grupo)
+
+    # Si es GET, mostrar el formulario con los datos actuales del grupo
+    return render_template('admin_editar_grupo.html', grupo=grupo)
+
+
+@app.route('/admin/grupos/eliminar/<grupo_id>', methods=['POST'])
+@admin_required
+def admin_eliminar_grupo(grupo_id):
+    """Elimina un grupo."""
+    try:
+        grupo = mongo.db.grupos.find_one({"_id": ObjectId(grupo_id)})
+        if not grupo:
+            flash('Grupo no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_grupos'))
+
+        # Proceder con la eliminación
+        result = mongo.db.grupos.delete_one({"_id": ObjectId(grupo_id)})
+        if result.deleted_count > 0:
+            flash(
+                f'Grupo "{grupo["nombre"]}" eliminado exitosamente.', 'success')
+        else:
+            flash('No se pudo eliminar el grupo.', 'error')
+    except Exception as e:
+        app.logger.error(f"Error al eliminar grupo: {e}")
+        flash('Ocurrió un error al eliminar el grupo.', 'error')
+
+    return redirect(url_for('admin_gestionar_grupos'))
+
+
+@app.route('/admin/grupos/asignar_tutor/<grupo_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_asignar_tutor(grupo_id):
+    """Asigna o cambia el tutor de un grupo."""
+    try:
+        grupo = mongo.db.grupos.find_one({"_id": ObjectId(grupo_id)})
+        if not grupo:
+            flash('Grupo no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_grupos'))
+    except Exception:
+        flash('ID de grupo inválido.', 'error')
+        return redirect(url_for('admin_gestionar_grupos'))
+
+    if request.method == 'POST':
+        tutor_id = request.form.get('tutor_id')
+
+        if not tutor_id or tutor_id == 'none':
+            # Desasignar tutor
+            try:
+                mongo.db.grupos.update_one(
+                    {"_id": ObjectId(grupo_id)},
+                    {"$set": {"tutor_id": None}}
+                )
+                flash('Tutor desasignado del grupo correctamente.', 'success')
+                return redirect(url_for('admin_gestionar_grupos'))
+            except Exception as e:
+                app.logger.error(f"Error al desasignar tutor: {e}")
+                flash('Ocurrió un error al desasignar el tutor.', 'error')
+                return redirect(url_for('admin_asignar_tutor', grupo_id=grupo_id))
+
+        # Verificar que el tutor_id sea válido y sea un tutor
+        try:
+            tutor_obj = mongo.db.usuarios.find_one(
+                {"_id": ObjectId(tutor_id), "rol": "tutor"})
+            if not tutor_obj:
+                flash('Tutor seleccionado inválido.', 'error')
+                # Recargar la página para mostrar el error
+                return redirect(url_for('admin_asignar_tutor', grupo_id=grupo_id))
+        except Exception:
+            flash('ID de tutor inválido.', 'error')
+            return redirect(url_for('admin_asignar_tutor', grupo_id=grupo_id))
+
+        try:
+            # Asignar el tutor
+            mongo.db.grupos.update_one(
+                {"_id": ObjectId(grupo_id)},
+                {"$set": {"tutor_id": tutor_id}}
+            )
+            flash(
+                f'Tutor {tutor_obj["nombre_completo"]} asignado al grupo {grupo["nombre"]} correctamente.', 'success')
+            return redirect(url_for('admin_gestionar_grupos'))
+        except Exception as e:
+            app.logger.error(f"Error al asignar tutor: {e}")
+            flash('Ocurrió un error al asignar el tutor.', 'error')
+            return redirect(url_for('admin_asignar_tutor', grupo_id=grupo_id))
+
+    # Si es GET, mostrar el formulario
+    # Obtener lista de tutores disponibles
+    tutores = list(mongo.db.usuarios.find(
+        {"rol": "tutor"}, {"nombre_completo": 1}))
+    # Obtener el tutor actual asignado
+    tutor_actual_id = grupo.get('tutor_id')
+
+    return render_template('admin_asignar_tutor.html', grupo=grupo, tutores=tutores, tutor_actual_id=tutor_actual_id)
+
+
+@app.route('/admin/grupos/gestionar_estudiantes/<grupo_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_gestionar_estudiantes(grupo_id):
+    """Agrega o elimina estudiantes de un grupo."""
+    try:
+        grupo = mongo.db.grupos.find_one({"_id": ObjectId(grupo_id)})
+        if not grupo:
+            flash('Grupo no encontrado.', 'error')
+            return redirect(url_for('admin_gestionar_grupos'))
+    except Exception:
+        flash('ID de grupo inválido.', 'error')
+        return redirect(url_for('admin_gestionar_grupos'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')  # 'agregar' o 'eliminar'
+        estudiante_id = request.form.get('estudiante_id')
+
+        if not estudiante_id or not action:
+            flash('Datos inválidos.', 'error')
+            return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+        try:
+            estudiante_oid = ObjectId(estudiante_id)
+            grupo_oid = ObjectId(grupo_id)
+        except Exception:
+            flash('ID de estudiante o grupo inválido.', 'error')
+            return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+        if action == 'agregar':
+            # Verificar que el estudiante exista y sea de rol 'estudiante'
+            estudiante = mongo.db.usuarios.find_one(
+                {"_id": estudiante_oid, "rol": "estudiante"})
+            if not estudiante:
+                flash('Estudiante no encontrado o no es válido.', 'error')
+                return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+            # Verificar que no esté ya en el grupo
+            if estudiante_id in grupo.get('estudiante_ids', []):
+                flash(
+                    f'El estudiante {estudiante["nombre_completo"]} ya está en este grupo.', 'warning')
+                return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+            # Agregar al estudiante
+            try:
+                mongo.db.grupos.update_one(
+                    {"_id": grupo_oid},
+                    # $addToSet evita duplicados
+                    {"$addToSet": {"estudiante_ids": estudiante_id}}
+                )
+                flash(
+                    f'Estudiante {estudiante["nombre_completo"]} agregado al grupo.', 'success')
+            except Exception as e:
+                app.logger.error(f"Error al agregar estudiante: {e}")
+                flash('Ocurrió un error al agregar el estudiante.', 'error')
+
+        elif action == 'eliminar':
+            # Verificar que el estudiante esté en el grupo
+            if estudiante_id not in grupo.get('estudiante_ids', []):
+                flash('El estudiante no está en este grupo.', 'warning')
+                return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+            # Eliminar del estudiante
+            try:
+                mongo.db.grupos.update_one(
+                    {"_id": grupo_oid},
+                    # $pull elimina el elemento
+                    {"$pull": {"estudiante_ids": estudiante_id}}
+                )
+                flash('Estudiante eliminado del grupo.', 'success')
+            except Exception as e:
+                app.logger.error(f"Error al eliminar estudiante: {e}")
+                flash('Ocurrió un error al eliminar el estudiante.', 'error')
+
+        # Redirigir a la misma página para refrescar la lista
+        return redirect(url_for('admin_gestionar_estudiantes', grupo_id=grupo_id))
+
+    # Si es GET, mostrar el formulario
+    # Obtener lista de estudiantes en el grupo
+    estudiante_ids = [ObjectId(sid) for sid in grupo.get('estudiante_ids', [])]
+    estudiantes_en_grupo = []
+    if estudiante_ids:
+        estudiantes_en_grupo = list(mongo.db.usuarios.find(
+            {"_id": {"$in": estudiante_ids}},
+            {"nombre_completo": 1, "numero_control": 1}
+        ))
+
+    # Obtener lista de estudiantes NO en el grupo (para agregarlos)
+    # Esto puede ser pesado si hay muchos estudiantes. Considera paginación o búsqueda.
+    # Por ahora, obtenemos todos los estudiantes y filtramos en Python.
+    todos_los_estudiantes = list(mongo.db.usuarios.find(
+        {"rol": "estudiante"}, {"nombre_completo": 1, "numero_control": 1}))
+    estudiantes_disponibles = [e for e in todos_los_estudiantes if str(
+        e['_id']) not in grupo.get('estudiante_ids', [])]
+
+    return render_template('admin_gestionar_estudiantes.html',
+                           grupo=grupo,
+                           estudiantes_en_grupo=estudiantes_en_grupo,
+                           estudiantes_disponibles=estudiantes_disponibles)
+
+
 # --- API Endpoints ---
 
 

@@ -1,0 +1,73 @@
+<!-- templates/admin_grupos.html -->
+{% extends "base.html" %}
+
+{% block title %}Gestión de Grupos - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Gestión de Grupos</h1>
+        <a href="{{ url_for('admin_nuevo_grupo') }}" class="btn btn-tecnm">
+            <i class="ti ti-users-group mr-2"></i> Nuevo Grupo
+        </a>
+    </div>
+
+    {% if grupos %}
+        <div class="overflow-x-auto bg-base-100 rounded-lg shadow">
+            <table class="table table-zebra">
+                <thead class="bg-tecnm-azul text-tecnm-blanco">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Ciclo Escolar</th>
+                        <th>Tutor Asignado</th>
+                        <th># Estudiantes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grupo in grupos %}
+                    <tr class="hover">
+                        <td class="font-semibold">{{ grupo.nombre }}</td>
+                        <td>{{ grupo.ciclo_escolar or 'N/A' }}</td>
+                        <td>
+                            {% if grupo.tutor_nombre != 'No asignado' %}
+                                <span class="badge badge-primary">{{ grupo.tutor_nombre }}</span>
+                            {% else %}
+                                <span class="badge badge-ghost">{{ grupo.tutor_nombre }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ grupo.num_estudiantes }}</td>
+                        <td>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="{{ url_for('admin_editar_grupo', grupo_id=grupo._id) }}" class="btn btn-xs btn-info">
+                                    <i class="ti ti-edit mr-1"></i> Editar
+                                </a>
+                                <a href="{{ url_for('admin_asignar_tutor', grupo_id=grupo._id) }}" class="btn btn-xs btn-secondary">
+                                    <i class="ti ti-user-check mr-1"></i> {% if grupo.tutor_nombre == 'No asignado' %}Asignar Tutor{% else %}Cambiar Tutor{% endif %}
+                                </a>
+                                <a href="{{ url_for('admin_gestionar_estudiantes', grupo_id=grupo._id) }}" class="btn btn-xs btn-accent">
+                                    <i class="ti ti-user-plus mr-1"></i> Gestionar Estudiantes
+                                </a>
+                                <form method="POST" action="{{ url_for('admin_eliminar_grupo', grupo_id=grupo._id) }}" style="display:inline;" 
+                                      onsubmit="return confirm('¿Estás seguro de que deseas ELIMINAR el grupo &quot;{{ grupo.nombre }}&quot;?\nEsta acción es irreversible.');">
+                                    <button type="submit" class="btn btn-xs btn-error">
+                                        <i class="ti ti-trash-x mr-1"></i> Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="bg-base-100 rounded-lg shadow p-6 text-center">
+            <i class="ti ti-mood-sad text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-xl font-semibold mb-2">No se encontraron grupos.</h3>
+            <p class="mb-4">Aún no se han creado grupos en el sistema.</p>
+            <a href="{{ url_for('admin_nuevo_grupo') }}" class="btn btn-tecnm"><i class="ti ti-users-group mr-2"></i> Crear el primer grupo</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

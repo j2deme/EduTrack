@@ -1,0 +1,41 @@
+<!-- templates/admin_editar_grupo.html -->
+{% extends "base.html" %}
+
+{% block title %}Editar Grupo - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Editar Grupo: {{ grupo.nombre }}</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre del Grupo *</span>
+                    </label>
+                    <input type="text" name="nombre" placeholder="Nombre único del grupo" 
+                           value="{{ request.form.nombre or grupo.nombre }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-6">
+                    <label class="label">
+                        <span class="label-text">Ciclo Escolar</span>
+                    </label>
+                    <input type="text" name="ciclo_escolar" placeholder="Ciclo escolar" 
+                           value="{{ request.form.ciclo_escolar or grupo.ciclo_escolar or '' }}" 
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_grupos') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-device-floppy mr-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

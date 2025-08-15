@@ -1,0 +1,43 @@
+<!-- templates/admin_nuevo_grupo.html -->
+{% extends "base.html" %}
+
+{% block title %}Nuevo Grupo - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-tecnm-azul">Crear Nuevo Grupo</h2>
+            
+            <form method="POST">
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre del Grupo *</span>
+                        <span class="label-text-alt">Ej: ISIC-9A, IME-10B</span>
+                    </label>
+                    <input type="text" name="nombre" placeholder="Nombre único del grupo" 
+                           value="{{ request.form.nombre or nombre or '' }}" 
+                           class="input input-bordered w-full" required />
+                </div>
+                
+                <div class="form-control w-full mb-6">
+                    <label class="label">
+                        <span class="label-text">Ciclo Escolar</span>
+                        <span class="label-text-alt">Ej: 2024-A, 2024-B</span>
+                    </label>
+                    <input type="text" name="ciclo_escolar" placeholder="Ciclo escolar" 
+                           value="{{ request.form.ciclo_escolar or ciclo_escolar or '' }}" 
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="{{ url_for('admin_gestionar_grupos') }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-tecnm">
+                        <i class="ti ti-users-group mr-2"></i> Crear Grupo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -30,7 +30,7 @@
                 <p>Bienvenido, {{ user.nombre_completo }}. Desde aquí puedes gestionar usuarios, grupos y hábitos del sistema.</p>
                 <div class="card-actions justify-start flex-wrap gap-2 mt-4"> 
                     <a href="{{ url_for('admin_gestionar_tutores') }}" class="btn btn-outline"><i class="ti ti-users mr-2"></i>Gestionar Tutores</a>
-                    <a href="#" class="btn btn-outline"><i class="ti ti-users-group mr-2"></i>Gestionar Grupos</a>
+                    <a href="{{ url_for('admin_gestionar_grupos') }}" class="btn btn-outline"><i class="ti ti-users-group mr-2"></i>Gestionar Grupos</a>
                     <a href="{{ url_for('admin_habitos') }}" class="btn btn-outline"><i class="ti ti-checklist mr-2"></i>Gestionar Hábitos</a>
                 </div>
             </div>

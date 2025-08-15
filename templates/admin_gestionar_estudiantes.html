@@ -1,0 +1,101 @@
+<!-- templates/admin_gestionar_estudiantes.html -->
+{% extends "base.html" %}
+
+{% block title %}Gestionar Estudiantes - EduTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-tecnm-azul">Gestionar Estudiantes del Grupo: {{ grupo.nombre }}</h1>
+        <a href="{{ url_for('admin_gestionar_grupos') }}" class="btn btn-ghost">
+            <i class="ti ti-arrow-back mr-2"></i> Volver a Grupos
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Columna 1: Estudiantes en el grupo -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-primary"><i class="ti ti-user-check mr-2"></i> Estudiantes en el Grupo ({{ estudiantes_en_grupo|length }})</h2>
+                {% if estudiantes_en_grupo %}
+                    <div class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th># Control</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estudiante in estudiantes_en_grupo %}
+                                <tr>
+                                    <td>{{ estudiante.nombre_completo }}</td>
+                                    <td>{{ estudiante.numero_control or 'N/A' }}</td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="eliminar">
+                                            <input type="hidden" name="estudiante_id" value="{{ estudiante._id }}">
+                                            <button type="submit" class="btn btn-xs btn-error"
+                                                    onclick="return confirm('¿Eliminar a {{ estudiante.nombre_completo }} del grupo?');">
+                                                <i class="ti ti-user-minus mr-1"></i> Quitar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 italic">No hay estudiantes asignados a este grupo.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Columna 2: Agregar estudiantes -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-accent"><i class="ti ti-user-plus mr-2"></i> Agregar Estudiantes</h2>
+                
+                {% if estudiantes_disponibles %}
+                    <div class="overflow-x-auto max-h-96 overflow-y-auto"> 
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th># Control</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estudiante in estudiantes_disponibles %}
+                                <tr>
+                                    <td>{{ estudiante.nombre_completo }}</td>
+                                    <td>{{ estudiante.numero_control or 'N/A' }}</td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="agregar">
+                                            <input type="hidden" name="estudiante_id" value="{{ estudiante._id }}">
+                                            <button type="submit" class="btn btn-xs btn-success">
+                                                <i class="ti ti-user-plus mr-1"></i> Agregar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 italic">No hay más estudiantes disponibles para agregar a este grupo.</p>
+                    <a href="#" class="btn btn-sm btn-outline btn-accent mt-2">
+                        <i class="ti ti-upload mr-2"></i> Cargar Estudiantes por Lote
+                    </a> 
+                    <!-- Enlace para funcionalidad futura de carga por lotes -->
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
