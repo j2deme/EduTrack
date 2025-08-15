@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
@@ -14,6 +14,8 @@ app.secret_key = app.config['SECRET_KEY']
 
 # Inicializar PyMongo
 mongo = PyMongo(app)
+
+_initialized = False
 
 # --- Funciones auxiliares ---
 
@@ -262,8 +264,27 @@ def api_add_personal():
     return jsonify({"message": "Hábito personal creado", "id": str(result.inserted_id)}), 201
 
 
-# --- Inicialización (solo para setup inicial) ---
-@app.before_first_request
+@app.context_processor
+def inject_now():
+    from datetime import datetime
+    return {'now': datetime.now}  # Hora local
+
+
+# Hacer que el usuario actual esté disponible en todas las plantillas
+@app.before_request
+def load_logged_in_user():
+    g.current_user = get_current_user()
+
+
+@app.before_request
+def initialize_app():
+    global _initialized
+    if not _initialized:
+        # --- Llamada a la función de inicialización ---
+        create_initial_data()
+        _initialized = True
+
+
 def create_initial_data():
     # Crear hábitos base si no existen
     habitos_base = [
