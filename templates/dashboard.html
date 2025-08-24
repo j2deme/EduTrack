@@ -441,7 +441,7 @@
                             alert('Error al guardar nota: ' + error.message);
                         }
                     },
-                    // --- NUEVA FUNCION: Mostrar feedback en la card específica ---
+                    // --- Mostrar feedback en la card específica ---
                     mostrarFeedbackEnCard(habitId) {
                         // 1. Encontrar la card del hábito usando el data-habit-id
                         const card = document.querySelector(`.habit-card[data-habit-id="${habitId}"]`);
@@ -465,7 +465,6 @@
                             feedbackDiv.classList.add('hidden');
                         }, 2000);
                     }
-                    // --- FIN DE FUNCIONES ACTUALIZADAS ---
                 }));
             });
         </script>
