@@ -237,8 +237,9 @@ def dashboard():
                     'fecha': registro['fecha'],
                     'estado': registro['estado']
                 })
-            # Ordenar por fecha ascendente (más viejo primero en la lista)
-            stats_resumen['ultimos_registros'].sort(key=lambda x: x['fecha'])
+            # Ordenar por fecha descendente (más reciente primero en la lista)
+            stats_resumen['ultimos_registros'].sort(
+                key=lambda x: x['fecha'], reverse=True)
 
             # d. Estudiantes sin actividad en los últimos 3 días
             hace_3_dias = date.today() - timedelta(days=3)
